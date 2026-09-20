@@ -1,0 +1,52 @@
+[
+  {
+    "id": "c4a26199-5c15-4e29-b34c-852a41c25a9a",
+    "firstName": "Qipu",
+    "lastName": "Pepenepe",
+    "email": "20246334@aloe.ulima.edu.pe",
+    "dni": "19823879",
+    "password": "$2a$10$mrgWMfU2NYLgeKlnxCBu.ubjfJYqXfflhfBE0N.AuWQpfwviDS.Xi",
+    "verified": true,
+    "createdAt": "2026-05-18T03:45:09.642Z"
+  },
+  {
+    "id": "3199dacb-ae83-435f-8dce-3106537856a9",
+    "firstName": "fasdsafas",
+    "lastName": "fsafsadas",
+    "email": "20233329@aloe.ulima.edu.pe",
+    "dni": "60915782",
+    "password": "$2a$10$ktAlihN1fQW5qpnoRLKJV.UYYtHTtspLAS4/qKScA4C26vvh.BCe2",
+    "verified": true,
+    "createdAt": "2026-05-26T19:36:06.228Z"
+  },
+  {
+    "id": "b652269e-ed09-4797-82ce-10ad1866cd67",
+    "firstName": "jhandel",
+    "lastName": "zavaleta",
+    "email": "jhanzava9@gmail.com",
+    "dni": "12345678",
+    "password": "$2a$10$PAkrJu1zAo7CaVqUnW8/1OIYfZtH.ZoPLuL5KyJJOiHv2GDfCe9l6",
+    "verified": true,
+    "createdAt": "2026-06-25T13:51:12.982Z"
+  },
+  {
+    "id": "7b56c724-f8fc-4bf0-bea4-0bd13b7d1d87",
+    "firstName": "diego",
+    "lastName": "sandoval",
+    "email": "diegomsandovall@gmail.com",
+    "dni": "12345678",
+    "password": "$2a$10$znbpx4s.mmM.cDXS3s5.n.UpQVZ1lIYd//U2ViT39jPxALKQsH2JK",
+    "verified": true,
+    "createdAt": "2026-07-09T02:45:48.022Z"
+  },
+  {
+    "id": "d2436abb-35a2-4a5d-8715-9fd7edcf5f27",
+    "firstName": "pepito",
+    "lastName": "ajsdhsalk",
+    "email": "zavaletajhandel@gmail.com",
+    "dni": "19823879",
+    "password": "$2a$10$GirgL/fkfozwg9hvABuPSOV523jLcUDZ86YrV7nrXW6avSyR8Ooaq",
+    "verified": true,
+    "createdAt": "2026-07-10T19:05:53.220Z"
+  }
+]

@@ -1,0 +1,478 @@
+/* ============================================================
+   main.css — MoveShare Design System
+   Variables globales, reset, tipografía y utilidades base
+   ============================================================ */
+
+/* ── GOOGLE FONTS ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
+
+/* ── CSS VARIABLES ── */
+:root {
+  /* ========================================================
+     PALETA MOVESHARE
+     ======================================================== */
+  --c-share-pulse:    #DBF227; /* color principal / CTA */
+  --c-connected-leaf: #A9BF04; /* hover / acentos secundarios */
+  --c-graphite-path:  #1F2A35; /* texto oscuro fuerte */
+  --c-midnight-route: #042940; /* títulos / fondos oscuros */
+  --c-deep-flow:      #0B3A53; /* variante oscura / contenedores */
+  --c-urban-mist:     #6B7C8F; /* subtítulos / cuerpo */
+  --c-light-route:    #D9E2EC; /* bordes suaves */
+  --c-soft-cloud:     #F2F6FB; /* fondo principal */
+  --c-white:          #FFFFFF;
+
+  /* ========================================================
+     TOKENS SEMÁNTICOS
+     ======================================================== */
+  --c-primary:        var(--c-share-pulse);
+  --c-primary-hover:  var(--c-connected-leaf);
+  --c-primary-text:   var(--c-midnight-route);
+
+  --c-bg:             var(--c-soft-cloud);
+  --c-surface:        var(--c-white);
+  --c-surface-soft:   #F8FBFD;
+  --c-border:         var(--c-light-route);
+  --c-border-strong:  #C8D4E0;
+
+  --c-text:           var(--c-midnight-route);
+  --c-text-mid:       var(--c-urban-mist);
+  --c-text-soft:      #8B9AAA;
+
+  --c-link:           var(--c-midnight-route);
+  --c-link-hover:     var(--c-deep-flow);
+
+  /* Estados */
+  --c-success:        #16A34A;
+  --c-success-bg:     #EEF9F1;
+  --c-success-border: #BFE7CA;
+
+  --c-error:          #DC2626;
+  --c-error-bg:       #FFF1F2;
+  --c-error-border:   #FBC8CF;
+
+  --c-warning:        #D97706;
+  --c-warning-bg:     #FFF8EB;
+  --c-warning-border: #F8D8A8;
+
+  --c-info:           var(--c-deep-flow);
+  --c-info-bg:        #EDF6FA;
+  --c-info-border:    #CFE2EC;
+
+  /* ========================================================
+     TIPOGRAFÍA
+     ======================================================== */
+  --font-display: 'Poppins', 'Inter', Arial, sans-serif;
+  --font-body:    'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  /* ========================================================
+     ESPACIADO
+     ======================================================== */
+  --space-2xs: 2px;
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ========================================================
+     RADIOS
+     ======================================================== */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-pill: 9999px;
+
+  /* ========================================================
+     SOMBRAS
+     ======================================================== */
+  --shadow-sm:  0 4px 12px rgba(4, 41, 64, 0.06);
+  --shadow-md:  0 10px 30px rgba(4, 41, 64, 0.10);
+  --shadow-lg:  0 18px 48px rgba(4, 41, 64, 0.14);
+  --shadow-xl:  0 24px 70px rgba(4, 41, 64, 0.18);
+
+  /* ========================================================
+     TRANSICIONES
+     ======================================================== */
+  --transition-fast:   0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow:   0.4s ease;
+
+  /* Layout */
+  --navbar-height: 72px;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--c-text);
+  background: var(--c-bg);
+  line-height: 1.6;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--c-link);
+  text-decoration: none;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
+}
+
+a:hover {
+  color: var(--c-link-hover);
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--font-body);
+}
+
+/* ============================================================
+   TIPOGRAFÍA BASE
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--c-midnight-route);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: var(--c-text-mid);
+}
+
+strong,
+b {
+  font-weight: 700;
+}
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 22px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Botón principal: Share Pulse */
+.btn--primary {
+  background: var(--c-primary);
+  color: var(--c-primary-text);
+  box-shadow: 0 10px 24px rgba(169, 191, 4, 0.24);
+}
+
+.btn--primary:hover {
+  background: var(--c-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(169, 191, 4, 0.30);
+}
+
+.btn--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(169, 191, 4, 0.22);
+}
+
+/* Botón secundario / outlined */
+.btn--secondary,
+.btn--ghost {
+  background: transparent;
+  color: var(--c-midnight-route);
+  border: 1.5px solid var(--c-border);
+}
+
+.btn--secondary:hover,
+.btn--ghost:hover {
+  background: var(--c-soft-cloud);
+  border-color: var(--c-midnight-route);
+  color: var(--c-midnight-route);
+  transform: translateY(-1px);
+}
+
+.btn--secondary:active,
+.btn--ghost:active {
+  transform: translateY(0);
+}
+
+.btn--full {
+  width: 100%;
+}
+
+.btn--sm {
+  min-height: 38px;
+  padding: 9px 14px;
+  font-size: 0.84rem;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================
+   FORMULARIOS
+   ============================================================ */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--c-midnight-route);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.label-optional {
+  font-weight: 500;
+  color: var(--c-text-soft);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  color: var(--c-midnight-route);
+  background: var(--c-white);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--c-urban-mist);
+  opacity: 0.95;
+}
+
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover {
+  border-color: var(--c-border-strong);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--c-midnight-route);
+  box-shadow: 0 0 0 4px rgba(4, 41, 64, 0.10);
+  background: var(--c-white);
+}
+
+.form-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7C8F' stroke-width='2.4'%3E%3Cpolyline points='6,9 12,15 18,9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper .form-input {
+  padding-right: 46px;
+}
+
+.input-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-urban-mist);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.input-toggle:hover {
+  color: var(--c-midnight-route);
+}
+
+/* ============================================================
+   CHECKBOX / TÉRMINOS
+   ============================================================ */
+input[type="checkbox"] {
+  accent-color: var(--c-connected-leaf);
+}
+
+/* ============================================================
+   MENSAJES DE ESTADO
+   ============================================================ */
+.form-message {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.form-message--error {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
+}
+
+.form-message--success {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+  border: 1px solid var(--c-success-border);
+}
+
+.form-message--info {
+  background: var(--c-info-bg);
+  color: var(--c-info);
+  border: 1px solid var(--c-info-border);
+}
+
+/* ============================================================
+   SPINNER
+   ============================================================ */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(4, 41, 64, 0.18);
+  border-top-color: var(--c-midnight-route);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Si el spinner va dentro de un botón principal, que contraste bonito */
+.btn--primary .spinner {
+  border: 2px solid rgba(4, 41, 64, 0.20);
+  border-top-color: var(--c-midnight-route);
+}
+
+/* ============================================================
+   UTILIDADES SUAVES
+   ============================================================ */
+.text-title {
+  color: var(--c-midnight-route);
+}
+
+.text-body {
+  color: var(--c-urban-mist);
+}
+
+.surface-card {
+  background: var(--c-surface);
+  border: 1px solid rgba(217, 226, 236, 0.8);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================================
+   SCROLL
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9D5E0;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #AEBECD;
+}
+
+/* ============================================================
+   RESPONSIVE BASE
+   ============================================================ */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

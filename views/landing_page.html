@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoveShare | Muévete mejor, gasta menos</title>
+    
+    <!-- Tipografías: Poppins Bold & Inter Regular/Semibold -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="/css/landing_page.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#" class="nav-logo">
+                <img src="/assets/moveshare-logo-dark.png" alt="MoveShare Logo">
+            </a>
+            
+            <div class="nav-links">
+                <a href="#inicio">Inicio</a>
+                <a href="#beneficios">Beneficios</a>
+                <a href="#como-funciona">Cómo funciona</a>
+                <a href="#contacto">Contacto</a>
+            </div>
+
+            <div class="nav-actions">
+                <a href="/login" class="btn btn-outline">Iniciar sesión</a>
+                <a href="/login#registro" class="btn btn-primary">Registrarse</a>
+            </div>
+
+            <button class="hamburger">☰</button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="inicio">
+        <div class="blob blob-blue"></div>
+        <div class="blob blob-green"></div>
+        
+        <div class="container hero-grid">
+            <div class="hero-content reveal">
+                <h1>Comparte viajes.<br>Reduce costos.<br>Muévete mejor.</h1>
+                <p>La plataforma exclusiva para Lima Metropolitana que conecta a personas con las mismas rutas para viajar de forma inteligente y sostenible.</p>
+                
+                <div class="hero-actions">
+                    <a href="/login#registro" class="btn btn-primary">Registrarme</a>
+                    <a href="/login" class="btn btn-outline">Iniciar sesión</a>
+                </div>
+
+                <div class="hero-badges">
+                    <div class="badge"><span>✔</span> Seguro</div>
+                    <div class="badge"><span>✔</span> Conductores verificados</div>
+                    <div class="badge"><span>✔</span> Rutas inteligentes</div>
+                </div>
+            </div>
+
+            <div class="hero-mockup reveal delay-2">
+                <img src="/assets/hero-phone.png" alt="Dashboard de MoveShare">
+            </div>
+        </div>
+    </section>
+
+    <!-- ESTADÍSTICAS -->
+    <section class="stats-section">
+        <div class="container stats-grid">
+            <div class="stat-card reveal delay-1">
+                <span class="stat-number" data-target="500">+0</span>
+                <span class="stat-label">Usuarios Activos</span>
+            </div>
+            <div class="stat-card reveal delay-2">
+                <span class="stat-number" data-target="120">+0</span>
+                <span class="stat-label">Viajes Completados</span>
+            </div>
+            <div class="stat-card reveal delay-3">
+                <span class="stat-number" data-target="95">0%</span>
+                <span class="stat-label">Nivel de Satisfacción</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFICIOS -->
+    <section class="benefits-section" id="beneficios">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>¿Por qué elegir MoveShare?</h2>
+                <p>Diseñado para simplificar tu movilidad diaria.</p>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card reveal delay-1">
+                    <span class="benefit-icon">🚗</span>
+                    <h3>Comparte gastos</h3>
+                    <p>Divide el costo de la gasolina y los peajes. Viaja cómodamente sin pagar tarifas infladas o dinámicas.</p>
+                </div>
+                <div class="benefit-card reveal delay-2">
+                    <span class="benefit-icon">📍</span>
+                    <h3>Rutas compatibles</h3>
+                    <p>Nuestro algoritmo encuentra coincidencias exactas en tu trayecto diario hacia el trabajo o la universidad.</p>
+                </div>
+                <div class="benefit-card reveal delay-3">
+                    <span class="benefit-icon">⭐</span>
+                    <h3>Viaja con confianza</h3>
+                    <p>Comunidad verificada mediante documentos institucionales, sistema de reputación y soporte 24/7.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="how-it-works" id="como-funciona">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Tu viaje en 3 pasos simples</h2>
+                <p>Olvida la complejidad, coordinar tu ruta nunca fue tan fácil.</p>
+            </div>
+
+            <div class="steps-container reveal delay-2">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <h3>Regístrate</h3>
+                    <p>Crea tu cuenta verificada en segundos, ya sea como conductor o pasajero frecuente.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <h3>Encuentra o publica</h3>
+                    <p>Ingresa tu ruta y horario. Te mostraremos inmediatamente las mejores coincidencias disponibles.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <h3>Comparte el viaje</h3>
+                    <p>Confirma el asiento, coordina por el chat interno y disfruta de un trayecto seguro y eficiente.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CALL TO ACTION -->
+    <section class="cta-section reveal">
+        <div class="container cta-content">
+            <h2>¿Listo para compartir tu próximo viaje?</h2>
+            <a href="/login#registro" class="btn btn-dark">Crear cuenta ahora</a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col" style="max-width: 300px;">
+                    <a href="#" class="footer-logo">
+                        <img src="/assets/moveshare-logo-dark.png" alt="MoveShare Logo">
+                    </a>
+                    <p style="font-size: 14px;">Transformando la movilidad en Lima Metropolitana a través de la tecnología y la colaboración.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Plataforma</h4>
+                    <ul>
+                        <li><a href="#">Buscar viajes</a></li>
+                        <li><a href="#">Publicar ruta</a></li>
+                        <li><a href="#">Calculadora de ahorro</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Términos y condiciones</a></li>
+                        <li><a href="#">Políticas de privacidad</a></li>
+                        <li><a href="#">Normas de la comunidad</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Proyecto académico • MoveShare • Ingeniería de Software</p>
+                <p style="margin-top: 8px;">© 2026 Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Enlace al archivo JavaScript -->
+    <script src="/js/landing_page.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+@startuml
+
+title Modelo de Dominio Simplificado - MoveShare
+
+package "Moveshare Taxi compartido"
+{
+class Usuario {
+  nombre
+  correo
+  dni
+}
+
+class Vehiculo {
+  placa
+  modelo
+  asientosDisponibles
+}
+
+class Viaje {
+  puntoInicio
+  puntoDestino
+  horaSalida
+}
+}
+' Relaciones directas basadas en la elección del usuario
+Usuario "1" -- "0..1" Vehiculo : registra >
+
+Usuario "1" -- "0..*" Viaje : publica como conductor >
+Usuario "*" -- "0..1" Viaje : acepta y reserva como pasajero >
+
+@enduml

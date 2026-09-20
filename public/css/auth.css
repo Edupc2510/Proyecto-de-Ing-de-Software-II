@@ -1,0 +1,514 @@
+/* ============================================================
+   auth.css — Estilos de la página de autenticación MoveShare
+   ============================================================ */
+
+/* ── LAYOUT AUTH ── */
+.auth-page {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--c-soft-cloud);
+}
+
+/* Fondo general de la página */
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--c-midnight-route) 0%,
+    var(--c-deep-flow) 100%
+  );
+}
+
+/* Estos blobs/grids ya no se usan visualmente, pero los dejamos neutros
+   por si el HTML todavía los contiene */
+.auth-bg__blob,
+.auth-bg__grid {
+  display: none;
+}
+
+/* ── LAYOUT SPLIT ── */
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(420px, 1.05fr) minmax(520px, 0.95fr);
+  min-height: 100vh;
+}
+
+/* ============================================================
+   PANEL IZQUIERDO / HERO
+   ============================================================ */
+.auth-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 48px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    linear-gradient(135deg, var(--c-midnight-route) 0%, var(--c-deep-flow) 100%);
+  overflow: hidden;
+}
+
+/* Overlay suave para que luego puedas poner la ilustración de ciudad */
+.auth-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(219, 242, 39, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(169, 191, 4, 0.10), transparent 30%);
+  pointer-events: none;
+}
+
+.auth-hero__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Logo */
+.auth-logo {
+  margin-bottom: 40px;
+}
+
+.auth-logo__image {
+  width: min(900px, 100%);
+  height: auto;
+  object-fit: contain;
+}
+
+/* Título principal del hero */
+.auth-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--c-white);
+  margin-bottom: 18px;
+  max-width: 9ch;
+}
+
+.auth-hero__title em {
+  font-style: normal;
+  color: var(--c-share-pulse);
+}
+
+/* Subtítulo */
+.auth-hero__subtitle {
+  max-width: 420px;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: rgba(242, 246, 251, 0.82);
+  margin-bottom: 36px;
+}
+
+/* ── STATS ── */
+.auth-hero__stats {
+  display: flex;
+  gap: var(--space-xl);
+}
+
+.auth-hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--c-white);
+}
+
+.stat-label {
+  max-width: 420px;
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.75;
+  margin-bottom: 36px;
+  color: rgba(242, 246, 251, 0.82);
+}
+
+/* ============================================================
+   PANEL DERECHO
+   ============================================================ */
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: var(--c-soft-cloud);
+}
+
+/* Card principal del formulario */
+.auth-card {
+  width: 100%;
+  max-width: 560px; /* MÁS GRANDE que antes */
+  background: var(--c-white);
+  border: 1px solid rgba(217, 226, 236, 0.95);
+  border-radius: 32px;
+  padding: 34px 34px 30px;
+  box-shadow: 0 20px 60px rgba(4, 41, 64, 0.10);
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 6px;
+  margin-bottom: 28px;
+  border-radius: 18px;
+  background: var(--c-soft-cloud);
+  border: 1px solid var(--c-light-route);
+}
+
+.auth-tab {
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--c-urban-mist);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  text-align: center;
+}
+
+.auth-tab:hover {
+  color: var(--c-midnight-route);
+}
+
+.auth-tab--active {
+  background: var(--c-white);
+  color: var(--c-midnight-route);
+  box-shadow: 0 6px 20px rgba(4, 41, 64, 0.08);
+}
+
+/* ============================================================
+   FORMULARIOS
+   ============================================================ */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeSlideUp 0.25s ease;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Encabezado dentro de login / register */
+.auth-form__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.auth-form__title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--c-midnight-route);
+}
+
+.auth-form__subtitle {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--c-urban-mist);
+}
+
+/* Para que el register respire mejor */
+#form-register .auth-form__header {
+  margin-bottom: 8px;
+}
+
+/* Switch clásico inferior */
+.auth-switch {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--c-urban-mist);
+}
+
+.auth-switch a {
+  color: var(--c-midnight-route);
+  font-weight: 600;
+}
+
+.auth-switch a:hover {
+  color: var(--c-deep-flow);
+}
+
+/* ============================================================
+   DIVIDER LOGIN
+   ============================================================ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0;
+}
+
+.auth-divider span {
+  flex: 1;
+  height: 1px;
+  background: var(--c-light-route);
+}
+
+.auth-divider p {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--c-urban-mist);
+  margin: 0;
+}
+
+.auth-alt-action {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-alt-action__text {
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--c-urban-mist);
+}
+
+/* ============================================================
+   CHECKBOX DE TÉRMINOS
+   ============================================================ */
+.terms-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: -2px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--c-urban-mist);
+  cursor: pointer;
+  user-select: none;
+}
+
+.terms-check input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--c-share-pulse);
+  flex-shrink: 0;
+}
+
+.terms-check a {
+  color: var(--c-midnight-route);
+  font-weight: 600;
+}
+
+.terms-check a:hover {
+  color: var(--c-deep-flow);
+}
+
+/* ============================================================
+   VERIFICACIÓN
+   ============================================================ */
+.verify-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.verify-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--c-midnight-route);
+  text-align: center;
+}
+
+.verify-desc {
+  font-size: 0.95rem;
+  color: var(--c-urban-mist);
+  text-align: center;
+  line-height: 1.65;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   INPUTS DE CÓDIGO
+   ============================================================ */
+.code-inputs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 6px 0 4px;
+  flex-wrap: wrap;
+}
+
+.code-input {
+  width: 52px;
+  height: 58px;
+  border: 1.5px solid var(--c-light-route);
+  border-radius: 16px;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--c-midnight-route);
+  background: var(--c-soft-cloud);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.code-input:focus {
+  border-color: var(--c-share-pulse-dark);
+  background: var(--c-white);
+  box-shadow: 0 0 0 4px rgba(219, 242, 39, 0.18);
+  outline: none;
+}
+
+.code-input.filled {
+  border-color: var(--c-share-pulse-dark);
+  background: rgba(219, 242, 39, 0.18);
+}
+
+/* ============================================================
+   DEV CODE BOX
+   ============================================================ */
+.dev-code-box {
+  background: #fffbe6;
+  border: 1px dashed #d8b300;
+  border-radius: 16px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.dev-code-label {
+  font-size: 0.82rem;
+  color: #7a6500;
+  margin-bottom: 4px;
+}
+
+.dev-code-value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--c-midnight-route);
+  letter-spacing: 6px;
+}
+
+/* ============================================================
+   AJUSTES DE CAMPOS DENTRO DEL AUTH
+   ============================================================ */
+.auth-form .form-group {
+  gap: 7px;
+}
+
+.auth-form .form-row {
+  gap: 14px;
+}
+
+.auth-form .btn {
+  margin-top: 2px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+  .auth-layout {
+    grid-template-columns: 0.95fr 1.05fr;
+  }
+
+  .auth-hero {
+    padding: 48px 36px;
+  }
+
+  .auth-card {
+    max-width: 520px;
+    padding: 30px 28px;
+  }
+}
+
+@media (max-width: 920px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    padding: 24px 18px;
+    background: var(--c-soft-cloud);
+  }
+
+  .auth-card {
+    max-width: 100%;
+    border-radius: 26px;
+    padding: 28px 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-panel {
+    padding: 14px;
+  }
+
+  .auth-card {
+    padding: 22px 16px;
+    border-radius: 22px;
+  }
+
+  .auth-tabs {
+    margin-bottom: 22px;
+  }
+
+  .auth-form__title {
+    font-size: 1.7rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .code-inputs {
+    gap: 8px;
+  }
+
+  .code-input {
+    width: 44px;
+    height: 52px;
+    font-size: 1.15rem;
+    border-radius: 14px;
+  }
+}

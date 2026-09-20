@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveShare · Movilidad Compartida</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/auth.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+</head>
+<body class="auth-page">
+
+  <!-- FONDO DECORATIVO -->
+  <div class="auth-bg">
+    <div class="auth-bg__blob auth-bg__blob--1"></div>
+    <div class="auth-bg__blob auth-bg__blob--2"></div>
+    <div class="auth-bg__grid"></div>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="auth-layout">
+
+    <!-- PANEL IZQUIERDO (hero) -->
+    <div class="auth-hero">
+      <div class="auth-hero__content">
+        <div class="auth-logo">
+          <img src="/assets/moveshare-logo.png" alt="MoveShare" class="auth-logo__image" />
+        </div>
+
+        <h1 class="auth-hero__title">
+          Comparte el<br/>
+          <em>camino.</em><br/>
+          Reduce costos.
+        </h1>
+        <p class="auth-hero__subtitle">
+          La plataforma de carpooling universitario más inteligente de Lima. Conecta con compañeros que recorren la misma ruta cada día.
+        </p>
+
+        <div class="auth-hero__stats">
+          <div class="auth-hero__stat">
+            <span class="stat-number">2,400+</span>
+            <span class="stat-label">Usuarios activos</span>
+          </div>
+          <div class="auth-hero__stat">
+            <span class="stat-number">18</span>
+            <span class="stat-label">Universidades</span>
+          </div>
+          <div class="auth-hero__stat">
+            <span class="stat-number">40%</span>
+            <span class="stat-label">Ahorro promedio</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO (formularios) -->
+    <div class="auth-panel">
+      <div class="auth-card">
+
+        <!-- TABS -->
+        <div class="auth-tabs">
+          <button class="auth-tab auth-tab--active" id="tab-login" onclick="switchTab('login')">Iniciar sesión</button>
+          <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrarse</button>
+        </div>
+
+        <!-- ── FORMULARIO LOGIN ── -->
+        <div id="form-login" class="auth-form">
+          <div class="auth-form__header">
+            <h2 class="auth-form__title">Bienvenido de vuelta</h2>
+            <p class="auth-form__subtitle">Inicia sesión para continuar</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-email">Correo electrónico</label>
+            <input class="form-input" type="email" id="login-email" placeholder="tu@email.com" autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Contraseña</label>
+            <div class="input-wrapper">
+              <input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+              <button class="input-toggle" type="button" onclick="togglePassword('login-password', this)" aria-label="Mostrar contraseña">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="login-message" class="form-message" style="display:none;"></div>
+
+          <button class="btn btn--primary btn--full" id="btn-login" onclick="handleLogin()">
+            <span>Ingresar</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+
+          <p class="auth-switch">¿No tienes cuenta? <a href="#" onclick="switchTab('register')">Regístrate gratis</a></p>
+        </div>
+
+        <!-- ── FORMULARIO REGISTRO ── -->
+        <div id="form-register" class="auth-form" style="display:none;">
+          <div class="auth-form__header">
+            <h2 class="auth-form__title">Crear cuenta</h2>
+            <p class="auth-form__subtitle">Únete a la comunidad de MoveShare</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="reg-firstname">Nombre</label>
+              <input class="form-input" type="text" id="reg-firstname" placeholder="Ana" autocomplete="given-name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-lastname">Apellido</label>
+              <input class="form-input" type="text" id="reg-lastname" placeholder="García" autocomplete="family-name" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Correo electrónico</label>
+            <input class="form-input" type="email" id="reg-email" placeholder="tu@email.com" autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-dni">DNI</label>
+            <input class="form-input" type="text" id="reg-dni" placeholder="12345678" maxlength="8" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Contraseña</label>
+            <div class="input-wrapper">
+              <input class="form-input" type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+              <button class="input-toggle" type="button" onclick="togglePassword('reg-password', this)" aria-label="Mostrar contraseña">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="register-message" class="form-message" style="display:none;"></div>
+          <label class="terms-check">
+            <input type="checkbox" id="reg-terms" />
+            <span>
+              Acepto los <a href="#">Términos y Condiciones</a> y la <a href="#">Política de Privacidad</a>
+            </span>
+          </label>
+          <button class="btn btn--primary btn--full" id="btn-register" onclick="handleRegister()">
+            <span>Crear cuenta</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+
+          <p class="auth-switch">¿Ya tienes cuenta? <a href="#" onclick="switchTab('login')">Inicia sesión</a></p>
+        </div>
+
+        <!-- ── FORMULARIO VERIFICACIÓN ── -->
+        <div id="form-verify" class="auth-form" style="display:none;">
+          <div class="verify-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" stroke="#2979FF" stroke-width="2"/>
+              <path d="M12 24l8 8 16-16" stroke="#2979FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2 class="verify-title">Verifica tu correo</h2>
+          <p class="verify-desc" id="verify-desc">Ingresa el código de 6 dígitos que enviamos a tu correo electrónico.</p>
+
+          <div class="code-inputs" id="code-inputs">
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="code-input" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          </div>
+
+          <!-- Código de desarrollo (solo se muestra si el email falla) -->
+          <div id="dev-code-box" class="dev-code-box" style="display:none;">
+            <p class="dev-code-label">⚙️ Modo desarrollo - Código:</p>
+            <span id="dev-code-value" class="dev-code-value"></span>
+          </div>
+
+          <div id="verify-message" class="form-message" style="display:none;"></div>
+
+          <button class="btn btn--primary btn--full" id="btn-verify" onclick="handleVerify()">
+            <span>Verificar código</span>
+          </button>
+
+          <p class="auth-switch"><a href="#" onclick="switchTab('register')">← Volver al registro</a></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+</body>
+</html>

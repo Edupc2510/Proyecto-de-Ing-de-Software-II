@@ -1,0 +1,59 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+
+title Modelo de Dominio de Negocio - MoveShare (Fiel al Informe)
+package "MoveShare"{
+class Usuario {
+  nombre
+  correo
+  dni
+}
+
+class Conductor {
+  licenciaConducir
+  estadoValidacion
+}
+
+class Pasajero
+
+class Vehiculo {
+  placa
+  modelo
+  asientosDisponibles
+}
+
+class Viaje {
+  horaSalida
+  estadoViaje
+}
+
+class Ruta {
+  origen
+  destino
+}
+
+class PuntoRecojo {
+  nombreInterseccion
+  coordenadas
+}
+
+class Reserva {
+  numeroAsientosReservados
+  estadoConfirmacion
+}
+}
+' Relaciones naturales basadas en vuestro flujo
+Usuario "1" -- "0..1" Conductor : se-registra-como >
+Usuario "1" -- "0..1" Pasajero : se-registra-como >
+
+Conductor "1" -- "1" Vehiculo : conduce >
+Conductor "1" -- "0..*" Viaje : publica >
+
+Viaje "1" -- "1" Ruta : sigue >
+Ruta "1" -- "1..*" PuntoRecojo : contiene >
+
+Pasajero "1" -- "0..*" Reserva : solicita >
+Reserva "0..*" -- "1" Viaje : separa-asiento-en >
+Reserva "0..*" -- "1" PuntoRecojo : se-encuentran-en >
+
+@enduml
