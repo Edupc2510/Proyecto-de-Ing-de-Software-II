@@ -30,8 +30,33 @@ const saveRoutes = (routesArray) => {
 }
 
 
+// Estados posibles de una ruta. Las rutas antiguas no tienen "status" y se consideran activas.
+const ROUTE_STATUS = {
+    ACTIVE: 'activa',
+    CANCELLED: 'cancelada'
+};
+
+const isRouteCancelled = (route) => route?.status === ROUTE_STATUS.CANCELLED;
+
+const isRouteExpired = (route, now = Date.now()) => {
+    const expiresAtTimestamp = Number(route?.expiresAtTimestamp);
+    return Number.isFinite(expiresAtTimestamp) && expiresAtTimestamp > 0 && expiresAtTimestamp <= now;
+};
+
+/**
+ * Ruta visible para los pasajeros: no cancelada, no vencida y con asientos.
+ */
+const isRouteActive = (route, now = Date.now()) => {
+    const seats = Number(route?.seats);
+    return !isRouteCancelled(route) && !isRouteExpired(route, now) && Number.isInteger(seats) && seats > 0;
+};
+
 //exportamos el archiov para que el controlador pueda utriliazarlo
 module.exports = {
     getRoutes,
-    saveRoutes
+    saveRoutes,
+    ROUTE_STATUS,
+    isRouteCancelled,
+    isRouteExpired,
+    isRouteActive
 }
