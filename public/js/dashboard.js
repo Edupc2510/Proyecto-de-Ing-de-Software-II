@@ -32,6 +32,15 @@ let selectedRouteIdForBooking = null;
 
 // Rutas publicadas durante la sesión actual del conductor
 let publishedRoutes = [];
+
+// US27 / US28: orden de la lista del pasajero
+const PASSENGER_SORT_STORAGE_KEY = 'moveshare:passengerSort';
+const PASSENGER_SORT_OPTIONS = ['soonest', 'latest', 'most-seats', 'last-seats'];
+const PASSENGER_REFRESH_MS = 8000;   // actualización automática de la lista
+let passengerSort = readStoredPassengerSort();
+let passengerRoutesTimer = null;
+let passengerRoutesRequestId = 0;
+let passengerUserLocation = null;
 // ─────────────────────────────────────────────────────────────
 // INICIALIZACIÓN
 // ─────────────────────────────────────────────────────────────
@@ -39,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadUserProfile();
   setViewMode('pc');
   showScreen('role');
+  syncPassengerSortSelect();
 
   const navbarUser = document.getElementById('navbar-user');
 
@@ -168,6 +178,7 @@ function showScreen(name) {
  */
 function goToRoleSelection() {
   currentRole = null;
+  stopPassengerRoutesPolling();
 
   // Ocultar badge de rol
   const badge = document.getElementById('role-badge');
@@ -198,12 +209,15 @@ function selectRole(role) {
   if (role === 'passenger') {
     showScreen('passenger');
 
+    syncPassengerSortSelect();
     loadPassengerRoutes();
+    startPassengerRoutesPolling();
     // Inicializar mapa después de que el DOM esté visible
     requestAnimationFrame(() => {
       setTimeout(() => initPassengerMap(), 100);
     });
   } else if (role === 'driver') {
+    stopPassengerRoutesPolling();
     showScreen('driver');
     renderPublishedRoutes();
     requestAnimationFrame(() => {
@@ -954,30 +968,45 @@ async function handleLogout() {
  * Usa la geolocalización del navegador.
  */
 async function loadPassengerRoutes() {
+  // Si el usuario cambia el orden mientras llega una respuesta anterior, se ignora la vieja
+  const requestId = ++passengerRoutesRequestId;
+
   try {
-    const res = await fetch('/trips');
+    const res = await fetch(`/trips?sort=${encodeURIComponent(passengerSort)}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('No se pudieron cargar las rutas disponibles.');
 
     const routes = await res.json();
     const routesContainer = document.getElementById('dynamic-passenger-routes');
     if (!routesContainer) return;
 
+    if (requestId !== passengerRoutesRequestId) return;
+
     if (!Array.isArray(routes) || routes.length === 0) {
       routesContainer.innerHTML = '<p style="padding: 1rem; color: #4A5068; text-align: center;">No hay rutas disponibles por el momento.</p>';
       return;
     }
 
+    // La ubicación se pide una sola vez (la lista se refresca cada pocos segundos)
     const getUserLocation = () => new Promise(resolve => {
+      if (passengerUserLocation) {
+        resolve(passengerUserLocation);
+        return;
+      }
+
       const defaultLocation = [-12.046374, -77.042793]; // Lima centro como respaldo
+      const done = (location) => {
+        passengerUserLocation = location;
+        resolve(location);
+      };
 
       if (!navigator.geolocation) {
-        resolve(defaultLocation);
+        done(defaultLocation);
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
-        position => resolve([position.coords.latitude, position.coords.longitude]),
-        () => resolve(defaultLocation),
+        position => done([position.coords.latitude, position.coords.longitude]),
+        () => done(defaultLocation),
         { timeout: 2500 }
       );
     });
@@ -1000,6 +1029,7 @@ async function loadPassengerRoutes() {
     };
 
     const [userLat, userLng] = await getUserLocation();
+    if (requestId !== passengerRoutesRequestId) return;
 
     routesContainer.innerHTML = routes.map((route, index) => {
       const driverOriginCoords = getRouteOriginCoords(route);
@@ -1008,8 +1038,10 @@ async function loadPassengerRoutes() {
       const lngDiff = driverOriginCoords[1] - userLng;
       const distanceKM = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111;
 
+      const soldOut = route.soldOut === true || !(Number(route.seats) > 0);
+
       return `
-        <div class="route-card" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
+        <div class="route-card${soldOut ? ' route-card--sold-out' : ''}" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
           <div class="route-card__stops">
             <div class="route-stop route-stop--origin">
               <div class="route-stop__dot route-stop__dot--origin"></div>
@@ -1033,7 +1065,9 @@ async function loadPassengerRoutes() {
           <div class="route-card__meta" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
             <div>
               <span class="route-meta-chip">🕒 ${escapeHTML(route.time || '')}</span>
-              <span class="route-meta-chip">💺 ${route.seats} asist.</span>
+              ${soldOut
+                ? '<span class="route-badge-sold-out">Agotado</span>'
+                : `<span class="route-meta-chip">💺 ${route.seats} asist.</span>`}
             </div>
 
             <button 
@@ -1041,8 +1075,9 @@ async function loadPassengerRoutes() {
               class="btn btn--primary btn--sm btn-select-route" 
               data-route-index="${index}" 
               style="padding: 6px 16px; font-size: 12px;"
+              ${soldOut ? 'disabled' : ''}
             >
-              Seleccionar
+              ${soldOut ? 'Sin cupos' : 'Seleccionar'}
             </button>
           </div>
         </div>
@@ -1090,6 +1125,69 @@ async function loadPassengerRoutes() {
     }
   }
 }
+// ─────────────────────────────────────────────────────────────
+// PASAJERO: ORDENAR VIAJES (US27 y US28)
+// ─────────────────────────────────────────────────────────────
+// El criterio elegido se guarda en sessionStorage para que NO se reinicie
+// al volver desde el detalle del viaje o al recargar la página (US27, esc. 05).
+// El orden real lo calcula el backend: GET /trips?sort=<criterio>.
+
+function readStoredPassengerSort() {
+  try {
+    const saved = sessionStorage.getItem(PASSENGER_SORT_STORAGE_KEY);
+    return PASSENGER_SORT_OPTIONS.includes(saved) ? saved : 'soonest';
+  } catch (err) {
+    return 'soonest';
+  }
+}
+
+function savePassengerSort(value) {
+  try {
+    sessionStorage.setItem(PASSENGER_SORT_STORAGE_KEY, value);
+  } catch (err) {
+    // Si el navegador bloquea el almacenamiento, el orden sigue funcionando en memoria
+  }
+}
+
+/** Refleja el criterio actual en el <select>. */
+function syncPassengerSortSelect() {
+  const select = document.getElementById('passenger-sort');
+  if (select) select.value = passengerSort;
+}
+
+/** Se ejecuta cuando el pasajero cambia el "Ordenar por". */
+function changePassengerSort(value) {
+  if (!PASSENGER_SORT_OPTIONS.includes(value)) return;
+
+  passengerSort = value;
+  savePassengerSort(value);
+  loadPassengerRoutes();
+}
+
+/**
+ * Actualiza la lista cada pocos segundos para que los asientos disminuyan
+ * cuando otro pasajero reserva, sin recargar la página (US28, esc. 04).
+ * Se pausa si la pestaña está oculta o si hay un viaje abierto en el modal.
+ */
+function startPassengerRoutesPolling() {
+  stopPassengerRoutesPolling();
+
+  passengerRoutesTimer = setInterval(() => {
+    const modal = document.getElementById('route-detail-modal');
+    const modalOpen = modal && modal.style.display !== 'none';
+
+    if (document.hidden || modalOpen || currentRole !== 'passenger') return;
+    loadPassengerRoutes();
+  }, PASSENGER_REFRESH_MS);
+}
+
+function stopPassengerRoutesPolling() {
+  if (passengerRoutesTimer) {
+    clearInterval(passengerRoutesTimer);
+    passengerRoutesTimer = null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // PASAJERO: MODAL DE CONFIRMACIÓN DE VIAJE
 // ─────────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 // Importamos las funciones desde el modelo
 const { getRoutes, saveRoutes } = require('./routeModel');
+// US27/US28: ordenamiento de viajes
+const { sortRoutes, normalizeSortKey } = require('./routeSort');
 
 // A partir de aquí ya podemos usar getRoutes() y saveRoutes() en tus funciones del controlador
 // 1. Crear la función para obtener todas las rutas
@@ -9,32 +11,37 @@ const getAllRoutes = (req, res) => {
         const allRoutes = getRoutes();
         const ahora = Date.now(); // Milisegundos de la hora actual exacta
 
-        // 2. FILTRAR: Solo nos quedamos con las rutas que:
-        //    - Su tiempo de expiración sea MAYOR al de ahora (siguen vigentes)
-        //    - Y que tengan asientos disponibles (MAYOR a 0)
+        // 2. FILTRAR: solo se retiran las rutas VENCIDAS.
+        //    Las rutas sin asientos se conservan para mostrarse al final con la
+        //    etiqueta "Agotado" (US28, escenario 02).
         const validRoutes = allRoutes.filter(route => {
-            const isVibrant = route.expiresAtTimestamp ? route.expiresAtTimestamp > ahora : true;
-            const hasSeats = route.seats > 0;
-            return isVibrant && hasSeats;
+            return route.expiresAtTimestamp ? route.expiresAtTimestamp > ahora : true;
         });
 
-        // 3. OPTIMIZACIÓN: Si se venció alguna ruta, actualizamos el JSON para limpiarlo
+        // 3. OPTIMIZACIÓN: si se venció alguna ruta, actualizamos el JSON para limpiarlo
         if (validRoutes.length !== allRoutes.length) {
             saveRoutes(validRoutes);
-            console.log(`[Backend] Se eliminaron ${allRoutes.length - validRoutes.length} rutas obsoletas o sin asientos.`);
+            console.log(`[Backend] Se eliminaron ${allRoutes.length - validRoutes.length} rutas vencidas.`);
         }
 
-        // 4. Devolver solo las rutas válidas al pasajero
-        res.status(200).json(validRoutes);
-        
+        // 4. ORDENAR (US27 y US28). Criterio recibido por query: /trips?sort=soonest
+        //    Valores: soonest | latest | most-seats | last-seats
+        const sortKey = normalizeSortKey(req.query.sort);
+
+        const routesToSend = sortRoutes(validRoutes, sortKey).map(route => ({
+            ...route,
+            soldOut: !(Number(route.seats) > 0)
+        }));
+
+        // La lista cambia con cada reserva: que el navegador no la guarde en caché
+        res.set('Cache-Control', 'no-store');
+        res.status(200).json(routesToSend);
+
     } catch (error) {
         console.error("Error en getAllRoutes:", error);
         res.status(500).json({ error: "Hubo un problema al obtener las rutas" });
     }
 };
-
-
-
 
 const publishRoute = (req, res) => {
     try {
@@ -223,13 +230,7 @@ const joinRoute = (req, res) => {
         const currentSeats = Number(route.seats);
 
         if (!Number.isInteger(currentSeats) || currentSeats <= 0) {
-            routes.splice(routeIndex, 1);
-
-            const saved = saveRoutes(routes);
-            if (!saved) {
-                throw new Error("No se pudo eliminar la ruta sin asientos.");
-            }
-
+            // La ruta se conserva (aparece como "Agotado"); solo se rechaza la reserva
             return res.status(409).json({
                 error: "Lo sentimos, ya no quedan asientos disponibles."
             });
@@ -238,16 +239,12 @@ const joinRoute = (req, res) => {
         // Restar un asiento de forma segura
         const remainingSeats = currentSeats - 1;
 
-        if (remainingSeats === 0) {
-            // Si ya no quedan asientos, retiramos la ruta del JSON
-            routes.splice(routeIndex, 1);
-        } else {
-            // Si aún quedan asientos, actualizamos la ruta
-            routes[routeIndex] = {
-                ...route,
-                seats: remainingSeats
-            };
-        }
+        // Se actualiza siempre la ruta. Si queda en 0 asientos NO se borra:
+        // se mostrará al final de la lista con la etiqueta "Agotado" (US28).
+        routes[routeIndex] = {
+            ...route,
+            seats: remainingSeats
+        };
 
         const saved = saveRoutes(routes);
         if (!saved) {
@@ -257,7 +254,7 @@ const joinRoute = (req, res) => {
         return res.status(200).json({
             message: "¡Te has unido a la ruta con éxito!",
             remainingSeats,
-            routeRemoved: remainingSeats === 0
+            soldOut: remainingSeats === 0
         });
 
     } catch (error) {
@@ -282,22 +279,15 @@ const getMyPublishedRoutes = (req, res) => {
 
         const now = Date.now();
 
+        // Solo se descartan las vencidas; una ruta llena sigue siendo del conductor
         const activeRoutes = routes.filter(route => {
             const expiresAtTimestamp = Number(route.expiresAtTimestamp);
-            const seats = Number(route.seats);
 
-            const isNotExpired =
-                Number.isFinite(expiresAtTimestamp) &&
+            return Number.isFinite(expiresAtTimestamp) &&
                 expiresAtTimestamp > now;
-
-            const hasSeats =
-                Number.isInteger(seats) &&
-                seats > 0;
-
-            return isNotExpired && hasSeats;
         });
 
-        // Limpia rutas vencidas o sin asientos
+        // Limpia rutas vencidas
         if (activeRoutes.length !== routes.length) {
             saveRoutes(activeRoutes);
         }

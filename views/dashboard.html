@@ -112,6 +112,17 @@
             </div>
           </div>
 
+          <!-- US27 / US28: ordenar viajes disponibles -->
+          <div class="sort-bar">
+            <label for="passenger-sort" class="sort-bar__label">Ordenar por:</label>
+            <select id="passenger-sort" class="form-input form-select sort-bar__select" onchange="changePassengerSort(this.value)">
+              <option value="soonest">Más próximos</option>
+              <option value="latest">Más tarde</option>
+              <option value="most-seats">Más asientos libres</option>
+              <option value="last-seats">Últimos cupos</option>
+            </select>
+          </div>
+
           <div id="dynamic-passenger-routes"></div>
           <div id="passenger-routes-anchor"></div>
         </div>
