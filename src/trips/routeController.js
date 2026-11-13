@@ -1,6 +1,6 @@
 // Importamos las funciones desde el modelo
 const { getRoutes, saveRoutes } = require('./routeModel');
-// US27/US28: ordenamiento de viajes
+// US27-US28: ordenamiento de viajes
 const { sortRoutes, normalizeSortKey } = require('./routeSort');
 
 // A partir de aquí ya podemos usar getRoutes() y saveRoutes() en tus funciones del controlador
@@ -13,7 +13,7 @@ const getAllRoutes = (req, res) => {
 
         // 2. FILTRAR: solo se retiran las rutas VENCIDAS.
         //    Las rutas sin asientos se conservan para mostrarse al final con la
-        //    etiqueta "Agotado" (US28, escenario 02).
+        //    etiqueta "Agotado"
         const validRoutes = allRoutes.filter(route => {
             return route.expiresAtTimestamp ? route.expiresAtTimestamp > ahora : true;
         });
@@ -24,7 +24,7 @@ const getAllRoutes = (req, res) => {
             console.log(`[Backend] Se eliminaron ${allRoutes.length - validRoutes.length} rutas vencidas.`);
         }
 
-        // 4. ORDENAR (US27 y US28). Criterio recibido por query: /trips?sort=soonest
+        // 4. ORDENAR (US27 - US28). Criterio recibido por query: /trips?sort=soonest
         //    Valores: soonest | latest | most-seats | last-seats
         const sortKey = normalizeSortKey(req.query.sort);
 
@@ -240,7 +240,7 @@ const joinRoute = (req, res) => {
         const remainingSeats = currentSeats - 1;
 
         // Se actualiza siempre la ruta. Si queda en 0 asientos NO se borra:
-        // se mostrará al final de la lista con la etiqueta "Agotado" (US28).
+        // se mostrara al final de la lista con la etiqueta "Agotado" (US28).
         routes[routeIndex] = {
             ...route,
             seats: remainingSeats

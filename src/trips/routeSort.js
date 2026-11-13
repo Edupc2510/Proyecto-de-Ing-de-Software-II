@@ -1,8 +1,5 @@
-// src/trips/routeSort.js
+
 // Ordenamiento de viajes disponibles (US27 y US28).
-//
-// Son funciones puras (no leen ni escriben archivos), por eso se pueden
-// probar con `npm test` y reutilizar desde cualquier controlador.
 
 const SORT_KEYS = {
   SOONEST: 'soonest',         // US27 - "Más próximos"
@@ -85,23 +82,23 @@ const byLastSeatsFirst = (a, b) => {
 };
 
 const COMPARATORS = {
-  // US27 esc. 01 y 03: más cercano a la hora actual; empate -> calificación
+  // más cercano a la hora actual; empate -> calificación
   [SORT_KEYS.SOONEST]: chain(byDepartureAsc, byRatingDesc, bySeatsDesc, byCreatedAtAsc),
-  // US27 esc. 02: la lista se invierte (salidas más tarde primero)
+  // la lista se invierte (salidas más tarde primero)
   [SORT_KEYS.LATEST]: chain(byDepartureDesc, byRatingDesc, bySeatsDesc, byCreatedAtAsc),
-  // US28 esc. 01 y 05: más cupos primero; empate -> horario más próximo
+  // más cupos primero; empate -> horario más próximo
   [SORT_KEYS.MOST_SEATS]: chain(bySeatsDesc, byDepartureAsc, byRatingDesc, byCreatedAtAsc),
-  // US28 esc. 03: exactamente 1 asiento primero; empate -> horario más próximo
+  // exactamente 1 asiento primero; empate -> horario más próximo
   [SORT_KEYS.LAST_SEATS]: chain(byLastSeatsFirst, byDepartureAsc, byRatingDesc, byCreatedAtAsc),
 };
 
 /**
  * Devuelve una COPIA ordenada del arreglo de rutas (no modifica el original).
  * Las rutas agotadas (0 asientos) siempre quedan al final, con cualquier criterio
- * (US28 esc. 02), y entre ellas se mantiene el orden por horario.
+ * y entre ellas se mantiene el orden por horario.
  *
  * Esta función solo ordena: si hay filtros (US26) deben aplicarse antes de
- * llamarla, así el orden se aplica únicamente al subconjunto filtrado (US27 esc. 04).
+ * llamarla, así el orden se aplica únicamente al subconjunto filtrado.
  *
  * @param {Array} routes
  * @param {string} sortKey - uno de SORT_KEYS

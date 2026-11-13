@@ -99,6 +99,8 @@ function openProfileModal() {
     return;
   }
 
+  setProfileMode('view');
+  clearProfileFeedback();
   renderProfileModal(currentUserProfile);
   modal.style.display = 'flex';
 }
@@ -109,6 +111,10 @@ function closeProfileModal() {
   if (modal) {
     modal.style.display = 'none';
   }
+
+  // US19: al cerrar, se descartan los cambios sin guardar y se limpian los mensajes
+  setProfileMode('view');
+  clearProfileFeedback();
 }
 
 function renderProfileModal(user) {
@@ -157,6 +163,176 @@ window.addEventListener('keydown', (event) => {
     closeProfileModal();
   }
 });
+// ─────────────────────────────────────────────────────────────
+// PERFIL: EDITAR (US19)
+// ─────────────────────────────────────────────────────────────
+// El usuario puede editar nombre y apellido. El correo y el DNI se muestran
+// pero no se modifican. Las reglas de formato las valida el servidor
+// (PUT /dashboard/profile); aquí solo se evita enviar datos vacíos o iguales.
+
+/** Cambia el modal entre 'view' (solo lectura) y 'edit' (formulario). */
+function setProfileMode(mode) {
+  const editing = mode === 'edit';
+  const view = document.getElementById('profile-view');
+  const viewActions = document.getElementById('profile-view-actions');
+  const form = document.getElementById('profile-edit-form');
+
+  if (view) view.style.display = editing ? 'none' : '';
+  if (viewActions) viewActions.style.display = editing ? 'none' : '';
+  if (form) form.style.display = editing ? '' : 'none';
+}
+
+/** Muestra un mensaje en el modal. type: 'success' | 'error' | 'info' */
+function showProfileFeedback(type, message) {
+  const box = document.getElementById('profile-feedback');
+  if (!box) return;
+
+  box.className = `profile-feedback profile-feedback--${type}`;
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function clearProfileFeedback() {
+  const box = document.getElementById('profile-feedback');
+  if (!box) return;
+
+  box.textContent = '';
+  box.style.display = 'none';
+}
+
+function clearProfileFieldErrors() {
+  ['first-name', 'last-name'].forEach(name => {
+    const error = document.getElementById(`profile-error-${name}`);
+    const input = document.getElementById(`profile-input-${name}`);
+    if (error) error.textContent = '';
+    if (input) input.classList.remove('form-input--error');
+  });
+}
+
+/** Pinta el mensaje de error debajo de cada campo. errors = { firstName, lastName } */
+function showProfileFieldErrors(errors) {
+  const map = { firstName: 'first-name', lastName: 'last-name' };
+
+  Object.entries(map).forEach(([field, name]) => {
+    if (!errors || !errors[field]) return;
+
+    const error = document.getElementById(`profile-error-${name}`);
+    const input = document.getElementById(`profile-input-${name}`);
+    if (error) error.textContent = errors[field];
+    if (input) input.classList.add('form-input--error');
+  });
+}
+
+/** US19 esc. 1 (HU): el usuario selecciona "Editar perfil". */
+function startProfileEdit() {
+  if (!currentUserProfile) return;
+
+  clearProfileFeedback();
+  clearProfileFieldErrors();
+
+  document.getElementById('profile-input-first-name').value = currentUserProfile.firstName || '';
+  document.getElementById('profile-input-last-name').value = currentUserProfile.lastName || '';
+
+  setProfileMode('edit');
+  document.getElementById('profile-input-first-name').focus();
+}
+
+/** Descarta los cambios y vuelve a la vista de solo lectura. */
+function cancelProfileEdit() {
+  clearProfileFieldErrors();
+  clearProfileFeedback();
+  setProfileMode('view');
+}
+
+/** Refleja el perfil actualizado en el saludo y en la barra superior. */
+function refreshProfileHeader(user) {
+  const firstName = user.firstName || 'Usuario';
+
+  const greeting = document.getElementById('role-greeting');
+  const usernameEl = document.getElementById('navbar-username');
+  const avatarEl = document.getElementById('navbar-avatar');
+
+  if (greeting) greeting.textContent = `Hola, ${firstName} 👋`;
+  if (usernameEl) usernameEl.textContent = firstName;
+  if (avatarEl) avatarEl.textContent = firstName.charAt(0).toUpperCase();
+}
+
+/** Envía los cambios al servidor (US19 esc. 01 a 05). */
+async function submitProfileEdit(event) {
+  if (event) event.preventDefault();
+
+  const saveBtn = document.getElementById('profile-save-btn');
+  const firstName = document.getElementById('profile-input-first-name').value.trim();
+  const lastName = document.getElementById('profile-input-last-name').value.trim();
+
+  clearProfileFeedback();
+  clearProfileFieldErrors();
+
+  // Esc. 03: campos obligatorios vacíos -> no se envía nada
+  if (!firstName || !lastName) {
+    showProfileFieldErrors({
+      firstName: firstName ? '' : 'El nombre es obligatorio.',
+      lastName: lastName ? '' : 'El apellido es obligatorio.'
+    });
+    showProfileFeedback('error', 'Completa los campos obligatorios para guardar los cambios.');
+    return;
+  }
+
+  // Esc. 04: sin cambios -> no se llama al servidor
+  if (firstName === (currentUserProfile.firstName || '') &&
+      lastName === (currentUserProfile.lastName || '')) {
+    showProfileFeedback('info', 'No hay cambios para guardar.');
+    return;
+  }
+
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    const res = await fetch('/dashboard/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        // Hace que el servidor responda 401 en JSON (y no redirija) si la sesión expiró
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ firstName, lastName })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    // Esc. 05: sesión expirada -> pedir iniciar sesión otra vez
+    if (res.status === 401) {
+      showProfileFeedback('error', 'Tu sesión expiró. Inicia sesión nuevamente.');
+      setTimeout(() => { window.location.href = '/'; }, 1800);
+      return;
+    }
+
+    // Esc. 02 y 03: el servidor rechazó los datos
+    if (!res.ok || !data.success) {
+      showProfileFieldErrors(data.errors);
+      showProfileFeedback('error', data.message || 'No se pudo actualizar el perfil.');
+      return;
+    }
+
+    // Esc. 01: edición exitosa
+    currentUserProfile = data.user;
+    refreshProfileHeader(data.user);
+    renderProfileModal(data.user);
+    setProfileMode('view');
+    showProfileFeedback(data.updated ? 'success' : 'info', data.message);
+
+  } catch (err) {
+    console.error('[Dashboard] Error actualizando perfil:', err);
+    showProfileFeedback('error', 'No se pudo conectar con el servidor. Inténtalo de nuevo.');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+window.startProfileEdit = startProfileEdit;
+window.cancelProfileEdit = cancelProfileEdit;
+window.submitProfileEdit = submitProfileEdit;
+
 // ─────────────────────────────────────────────────────────────
 // NAVEGACIÓN ENTRE PANTALLAS
 // ─────────────────────────────────────────────────────────────

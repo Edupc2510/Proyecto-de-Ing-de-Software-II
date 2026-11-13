@@ -261,7 +261,11 @@
       <h3 id="profile-full-name">Usuario</h3>
       <p id="profile-email">correo@ejemplo.com</p>
 
-      <div class="profile-info-list">
+      <!-- US19: mensajes de confirmación o error -->
+      <div id="profile-feedback" class="profile-feedback" role="status" aria-live="polite" style="display: none;"></div>
+
+      <!-- Modo ver -->
+      <div class="profile-info-list" id="profile-view">
         <div class="profile-info-item">
           <span class="profile-info-label">Nombre</span>
           <strong id="profile-first-name">--</strong>
@@ -282,6 +286,32 @@
           <strong id="profile-created-at">--</strong>
         </div>
       </div>
+
+      <div class="profile-actions" id="profile-view-actions">
+        <button type="button" class="btn btn--primary btn--sm" id="profile-edit-btn" onclick="startProfileEdit()">Editar perfil</button>
+      </div>
+
+      <!-- US19: modo editar (nombre y apellido; correo y DNI no se modifican) -->
+      <form id="profile-edit-form" class="profile-edit-form" style="display: none;" novalidate onsubmit="submitProfileEdit(event)">
+        <div class="form-group">
+          <label class="form-label" for="profile-input-first-name">Nombre</label>
+          <input type="text" id="profile-input-first-name" class="form-input" maxlength="50" autocomplete="given-name">
+          <span class="profile-field-error" id="profile-error-first-name"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="profile-input-last-name">Apellido</label>
+          <input type="text" id="profile-input-last-name" class="form-input" maxlength="50" autocomplete="family-name">
+          <span class="profile-field-error" id="profile-error-last-name"></span>
+        </div>
+
+        <p class="profile-edit-note">El correo y el DNI no se pueden modificar.</p>
+
+        <div class="profile-actions">
+          <button type="button" class="btn btn--ghost btn--sm" id="profile-cancel-btn" onclick="cancelProfileEdit()">Cancelar</button>
+          <button type="submit" class="btn btn--primary btn--sm" id="profile-save-btn">Guardar cambios</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

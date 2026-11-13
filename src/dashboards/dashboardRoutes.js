@@ -12,4 +12,7 @@ router.get('/', requireAuth, dashboardController.getDashboard);
 // GET /dashboard/profile - Retorna datos del perfil en JSON
 router.get('/profile', requireAuth, dashboardController.getProfile);
 
+// PUT /dashboard/profile - Edita nombre y apellido del usuario logueado (US19)
+router.put('/profile', requireAuth, dashboardController.updateProfile);
+
 module.exports = router;

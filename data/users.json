@@ -48,5 +48,15 @@
     "password": "$2a$10$GirgL/fkfozwg9hvABuPSOV523jLcUDZ86YrV7nrXW6avSyR8Ooaq",
     "verified": true,
     "createdAt": "2026-07-10T19:05:53.220Z"
+  },
+  {
+    "id": "2049fc07-9113-45e0-9499-7a10b81c5189",
+    "firstName": "Fabrizio",
+    "lastName": "Curo",
+    "email": "20230892@aloe.ulima.edu.pe",
+    "dni": "12334567",
+    "password": "$2a$10$hof8U0PkwMXZDjoTy1jo/OcRT0ekqXkCK9UnIpxHN96dU.q/kSes.",
+    "verified": true,
+    "createdAt": "2026-11-13T00:10:56.283Z"
   }
 ]

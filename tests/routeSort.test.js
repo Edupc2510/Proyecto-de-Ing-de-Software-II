@@ -1,6 +1,5 @@
-// tests/routeSort.test.js
+
 // Pruebas de US27 (ordenar por horario) y US28 (ordenar por asientos).
-// Ejecutar con: npm test
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -23,12 +22,12 @@ const ids = (routes) => routes.map(r => r.id);
 
 // ───────────── US27 ─────────────
 
-test('US27 esc.01: "Más próximos" muestra primero la salida más cercana', () => {
+test('US27 esc.01: "Más proximos" muestra primero la salida mas cercana', () => {
   const routes = [makeRoute(1, 90, 3), makeRoute(2, 10, 3), makeRoute(3, 45, 3)];
   assert.deepEqual(ids(sortRoutes(routes, SORT_KEYS.SOONEST)), [2, 3, 1]);
 });
 
-test('US27 esc.02: "Más tarde" invierte la lista', () => {
+test('US27 esc.02: "Mas tarde" invierte la lista', () => {
   const routes = [makeRoute(1, 90, 3), makeRoute(2, 10, 3), makeRoute(3, 45, 3)];
   assert.deepEqual(ids(sortRoutes(routes, SORT_KEYS.LATEST)), [1, 3, 2]);
 });
