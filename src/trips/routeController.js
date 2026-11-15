@@ -24,6 +24,7 @@ const {
 } = require('../notifications/notificationModel');
 const { notifyMatchingAlertsForRoute } = require('../notifications/routeMatchingService');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
+const { validatePickupPoint } = require('./pickupValidator');
 
 // Palabra que el conductor debe escribir para confirmar la cancelación (US34 - Escenario 03)
 const CANCEL_CONFIRMATION_WORD = 'CANCELAR';
@@ -313,6 +314,21 @@ const joinRoute = (req, res) => {
             });
         }
 
+        // US21: validar el punto de recojo elegido por el pasajero (si lo envia)
+        let pickupPoint = null;
+
+        if (req.body?.pickupPoint) {
+            const pickupResult = validatePickupPoint(req.body.pickupPoint, route);
+
+            if (!pickupResult.valid) {
+                return res.status(pickupResult.status).json({
+                    error: pickupResult.error
+                });
+            }
+
+            pickupPoint = pickupResult.pickupPoint;
+        }
+
         // Restar un asiento de forma segura
         const remainingSeats = currentSeats - 1;
 
@@ -329,7 +345,7 @@ const joinRoute = (req, res) => {
         }
 
         // US14: registrar la solicitud del pasajero para que el conductor la vea
-        const booking = createBooking({ route, passengerId });
+        const booking = createBooking({ route, passengerId, pickupPoint });
 
         if (route.driverId) {
             const passenger = findUserById(passengerId);
