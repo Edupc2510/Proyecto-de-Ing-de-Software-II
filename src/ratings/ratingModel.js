@@ -1,28 +1,55 @@
 // ratings/ratingModel.js
-// US24 - Persistencia de calificaciones a conductores en data/ratings.json.
+// US24 - Calificaciones del pasajero hacia el conductor.
+//
+// Se guardan en data/ratings.json con el MISMO formato genérico que usa la
+// US25 (calificación del conductor hacia el pasajero), para que ambas
+// historias compartan un único archivo de calificaciones:
+//   { id, routeId, raterId, rateeId, rateeRole, score, comment, createdAt }
+//   - raterId:   quién califica (aquí, el pasajero)
+//   - rateeId:   a quién califican (aquí, el conductor)
+//   - rateeRole: 'driver' | 'passenger' → rol de quien recibe la nota
+// Además se guarda bookingId para saber de qué reserva sale la calificación.
 
 const { v4: uuidv4 } = require('uuid');
 const { createJsonStore } = require('../shared/jsonStore');
 
 const store = createJsonStore('ratings.json');
 
+const ROLE_DRIVER = 'driver';
+
 const getRatings = () => store.read();
 
-function findRatingByBooking(bookingId) {
-  return getRatings().find(r => r.bookingId === String(bookingId)) || null;
+/**
+ * Calificaciones que recibió un conductor (solo las de rol "driver").
+ */
+const getDriverRatings = (driverId) =>
+  getRatings().filter(r => r.rateeRole === ROLE_DRIVER && r.rateeId === String(driverId));
+
+/**
+ * Calificación que el pasajero ya le dio al conductor por un viaje, o null.
+ * Se busca por la combinación viaje + quién califica + a quién (igual que en US25).
+ */
+function findDriverRating({ routeId, passengerId, driverId }) {
+  return getRatings().find(r =>
+    r.rateeRole === ROLE_DRIVER &&
+    r.routeId === String(routeId) &&
+    r.raterId === String(passengerId) &&
+    r.rateeId === String(driverId)
+  ) || null;
 }
 
-function createRating({ booking, score, comment }) {
+function createDriverRating({ booking, score, comment }) {
   const ratings = getRatings();
 
   const rating = {
     id: uuidv4(),
-    bookingId: String(booking.id),
     routeId: String(booking.routeId),
-    driverId: String(booking.driverId),
-    passengerId: String(booking.passengerId),
+    raterId: String(booking.passengerId),
+    rateeId: String(booking.driverId),
+    rateeRole: ROLE_DRIVER,
+    bookingId: String(booking.id),
     score,
-    comment: comment || '',
+    comment: comment || null,
     createdAt: new Date().toISOString(),
   };
 
@@ -36,11 +63,11 @@ function createRating({ booking, score, comment }) {
 }
 
 /**
- * Promedio de calificaciones de un conductor.
+ * Reputación del conductor: promedio y cantidad de calificaciones recibidas.
  * @returns {{ average: number|null, count: number }}
  */
 function getDriverRatingSummary(driverId) {
-  const driverRatings = getRatings().filter(r => r.driverId === String(driverId));
+  const driverRatings = getDriverRatings(driverId);
 
   if (driverRatings.length === 0) {
     return { average: null, count: 0 };
@@ -55,8 +82,9 @@ function getDriverRatingSummary(driverId) {
 }
 
 module.exports = {
-  getRatings,
-  findRatingByBooking,
-  createRating,
+  ROLE_DRIVER,
+  getDriverRatings,
+  findDriverRating,
+  createDriverRating,
   getDriverRatingSummary,
 };

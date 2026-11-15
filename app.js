@@ -11,7 +11,7 @@ const path = require('path');
 const authRoutes = require('./src/auth/authRoutes');
 const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
-const ratingRoutes = require('./src/ratings/ratingRoutes');
+const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
 const notificationRoutes = require('./src/notifications/notificationRoutes');
 
 const app = express();
@@ -44,7 +44,7 @@ app.use(session({
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
-app.use('/ratings', ratingRoutes);             // US24 - Calificar conductor
+app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
 app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
 // Página principal (login/registro)
 // Landing page principal

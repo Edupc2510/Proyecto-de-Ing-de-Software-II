@@ -1,15 +1,16 @@
-// ratings/ratingController.js
+// ratings/driverRatingController.js
 // US24 - Calificar conductor después del viaje.
 
-const { findRatingByBooking, createRating, getRatings, getDriverRatingSummary } = require('./ratingModel');
+const { findDriverRating, createDriverRating, getDriverRatingSummary } = require('./ratingModel');
 const { findBookingById, getBookingsByPassenger, BOOKING_STATUS } = require('../trips/bookingModel');
 const { findUserById } = require('../auth/userModel');
 
-// Duración estimada de un viaje. Un viaje se considera "finalizado" cuando pasó
-// la hora de salida + esta duración. Para demos se puede bajar con TRIP_DURATION_MINUTES=0 en el .env
+// Un viaje se considera "finalizado" cuando pasa su hora de salida (misma regla que la US25,
+// porque la aplicación no tiene una acción de "finalizar viaje"). Si se quiere esperar
+// una duración estimada, se puede definir TRIP_DURATION_MINUTES en el .env (por defecto 0).
 const TRIP_DURATION_MINUTES = Number.isFinite(Number(process.env.TRIP_DURATION_MINUTES))
   ? Number(process.env.TRIP_DURATION_MINUTES)
-  : 30;
+  : 0;
 
 const MAX_COMMENT_LENGTH = 300;
 
@@ -36,7 +37,7 @@ function getDriverName(driverId) {
 }
 
 /**
- * GET /ratings/trips
+ * GET /ratings/passenger/trips
  * Viajes reservados por el pasajero con su estado de calificación:
  *  - "por_calificar": el viaje terminó y aún no lo calificó
  *  - "en_curso": el viaje todavía no termina (no se puede calificar)
@@ -46,12 +47,14 @@ function getMyTripsToRate(req, res) {
   try {
     const passengerId = getUserId(req);
     const now = Date.now();
-    const ratings = getRatings();
-
     const trips = getBookingsByPassenger(passengerId)
       .filter(booking => booking.status === BOOKING_STATUS.CONFIRMED && booking.driverId)
       .map(booking => {
-        const rating = ratings.find(r => r.bookingId === booking.id) || null;
+        const rating = findDriverRating({
+          routeId: booking.routeId,
+          passengerId: booking.passengerId,
+          driverId: booking.driverId,
+        });
         const finished = isTripFinished(booking, now);
 
         let ratingStatus = 'en_curso';
@@ -84,7 +87,7 @@ function getMyTripsToRate(req, res) {
 }
 
 /**
- * POST /ratings
+ * POST /ratings/drivers
  * Body: { bookingId, score (1-5), comment? }
  */
 function rateDriver(req, res) {
@@ -127,11 +130,11 @@ function rateDriver(req, res) {
     }
 
     // Escenario 04: calificación duplicada
-    if (findRatingByBooking(booking.id)) {
+    if (findDriverRating({ routeId: booking.routeId, passengerId, driverId: booking.driverId })) {
       return res.status(409).json({ error: 'Ya calificaste a este conductor por este viaje.' });
     }
 
-    const rating = createRating({ booking, score, comment });
+    const rating = createDriverRating({ booking, score, comment });
 
     return res.status(201).json({
       message: '¡Gracias! Tu calificación fue registrada.',
@@ -145,7 +148,7 @@ function rateDriver(req, res) {
 }
 
 /**
- * GET /ratings/driver/:driverId
+ * GET /ratings/drivers/:driverId/summary
  * Reputación pública del conductor (promedio y cantidad de calificaciones).
  */
 function getDriverSummary(req, res) {
