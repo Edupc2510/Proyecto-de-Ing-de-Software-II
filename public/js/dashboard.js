@@ -1186,6 +1186,9 @@ function openRouteModal(routeId, origin, destination, time, seats, driverLat, dr
       .bindPopup('Punto de encuentro')
       .openPopup();
 
+    // US21: el pasajero elige su punto de recojo con un clic en el mapa
+    if (window.PickupSelector) PickupSelector.attach(modalMapInstance);
+
     // Forzamos render inicial del mapa.
     modalMapInstance.invalidateSize();
 
@@ -1260,6 +1263,8 @@ function closeRouteModal() {
   }
 
   selectedRouteIdForBooking = null;
+  // US21: limpiar el punto de recojo seleccionado
+  if (window.PickupSelector) PickupSelector.reset();
   // Cancela cualquier intento pendiente de dibujar la ruta del modal
   modalRouteRequestId++;
   // La línea se destruye junto con el mapa, pero limpiamos la referencia
@@ -1297,10 +1302,24 @@ async function confirmFinalBooking(routeId) {
       confirmButton.textContent = 'Confirmando...';
     }
 
+    // US21 - Escenario 03: sin internet no se permite guardar el punto
+    if (!navigator.onLine) {
+      alert('Sin conexi\u00f3n a internet. No se puede guardar el punto de recojo.');
+      return;
+    }
+
+    // US21 - Escenario 01: el pasajero debe elegir un punto antes de confirmar
+    const pickupPoint = window.PickupSelector ? PickupSelector.getSelection() : null;
+
+    if (!pickupPoint) {
+      alert('Selecciona tu punto de recojo en el mapa antes de confirmar.');
+      return;
+    }
+
     const res = await fetch('/trips/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ routeId })
+      body: JSON.stringify({ routeId, pickupPoint })
     });
 
     const data = await res.json().catch(() => ({}));
