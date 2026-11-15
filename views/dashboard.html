@@ -277,6 +277,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="/js/addressSearch.js"></script>
+  <script src="/js/pickupSelector.js"></script>
   <script src="/js/dashboard.js"></script>
 
   <div id="route-detail-modal" class="modal-overlay" style="display: none;">
@@ -302,6 +303,12 @@
 
         <div class="map-wrapper" style="height: 250px; margin-bottom: var(--space-sm);">
           <div id="modal-map" style="width: 100%; height: 100%; border-radius: inherit;"></div>
+        </div>
+
+        <!-- US21: punto de recojo elegido por el pasajero -->
+        <div style="margin-bottom: var(--space-sm); font-family: 'DM Sans', sans-serif;">
+          <p style="margin: var(--space-xs) 0;">&#128587; <strong>Tu punto de recojo:</strong> <span id="modal-pickup-text">Toca el mapa para elegir d&oacute;nde te recogen</span></p>
+          <button type="button" class="btn btn--ghost" style="width: 100%;" onclick="PickupSelector.useMyLocation()">&#128205; Usar mi ubicaci&oacute;n</button>
         </div>
 
         <div style="display: flex; gap: var(--space-sm);">
