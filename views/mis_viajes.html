@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveShare · Mis viajes</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="/css/mis_viajes.css" />
+</head>
+<body class="mv-page">
+
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <div class="navbar__brand">
+        <a class="navbar__logo-icon" href="/dashboard" aria-label="Ir al dashboard">
+          <img src="/assets/moveshare-logo-dark.png" alt="MoveShare" />
+        </a>
+      </div>
+      <div class="navbar__center">
+        <div class="role-badge"><span>Pasajero</span></div>
+      </div>
+      <div class="navbar__actions">
+        <a class="btn btn--ghost btn--sm" href="/dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Dashboard
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="mv">
+    <header class="mv-header">
+      <div>
+        <h1 class="mv-header__title">Mis viajes</h1>
+        <p class="mv-header__subtitle" id="mv-greeting">Revisa tus solicitudes, reservas, conductores frecuentes y reclamos.</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" id="mv-demo-btn" type="button" title="Genera datos de ejemplo para tu usuario">
+        Cargar datos de demostración
+      </button>
+    </header>
+
+    <div class="mv-tabs" role="tablist">
+      <button class="mv-tab mv-tab--active" role="tab" data-tab="solicitudes">Solicitudes <span class="mv-tab__count" id="count-solicitudes"></span></button>
+      <button class="mv-tab" role="tab" data-tab="reservas">Reservas <span class="mv-tab__count" id="count-reservas"></span></button>
+      <button class="mv-tab" role="tab" data-tab="conductores">Conductores frecuentes <span class="mv-tab__count" id="count-conductores"></span></button>
+      <button class="mv-tab" role="tab" data-tab="reclamos">Reclamos <span class="mv-tab__count" id="count-reclamos"></span></button>
+    </div>
+
+    <!-- US15 · Visualizar estado de solicitudes -->
+    <section class="mv-panel" id="panel-solicitudes" role="tabpanel">
+      <div class="mv-panel__head">
+        <h2>Estado de mis solicitudes</h2>
+        <select class="form-input form-select mv-filter" id="filtro-solicitudes" aria-label="Filtrar solicitudes">
+          <option value="todas">Todas</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="aceptada">Aceptadas</option>
+          <option value="rechazada">Rechazadas</option>
+          <option value="cancelada">Canceladas</option>
+          <option value="expirada">Expiradas</option>
+        </select>
+      </div>
+      <div class="mv-summary" id="resumen-solicitudes"></div>
+      <div class="mv-list" id="lista-solicitudes"></div>
+    </section>
+
+    <!-- US17 · Visualizar reservas · US35 · Confirmar participación -->
+    <section class="mv-panel" id="panel-reservas" role="tabpanel" hidden>
+      <div class="mv-panel__head">
+        <h2>Mis reservas</h2>
+        <div class="mv-chips" id="filtros-reservas"></div>
+      </div>
+      <div class="mv-list" id="lista-reservas"></div>
+    </section>
+
+    <!-- US30 · Contactar conductores frecuentes -->
+    <section class="mv-panel" id="panel-conductores" role="tabpanel" hidden>
+      <div class="mv-panel__head">
+        <h2>Conductores frecuentes</h2>
+        <span class="mv-hint" id="hint-conductores"></span>
+      </div>
+      <div class="mv-list mv-list--grid" id="lista-conductores"></div>
+    </section>
+
+    <!-- US37 · Consultar estado del reclamo -->
+    <section class="mv-panel" id="panel-reclamos" role="tabpanel" hidden>
+      <div class="mv-panel__head">
+        <h2>Mis reclamos</h2>
+        <form class="mv-search" id="form-buscar-reclamo">
+          <input class="form-input" id="codigo-reclamo" placeholder="Código, ej. REC-2026-000001" autocomplete="off" />
+          <button class="btn btn--primary btn--sm" type="submit">Consultar</button>
+        </form>
+      </div>
+      <div class="mv-summary" id="resumen-reclamos"></div>
+      <div class="mv-list" id="lista-reclamos"></div>
+    </section>
+  </main>
+
+  <!-- Modal genérico -->
+  <div class="mv-modal" id="mv-modal" hidden>
+    <div class="mv-modal__box" role="dialog" aria-modal="true" aria-labelledby="mv-modal-title">
+      <div class="mv-modal__header">
+        <h3 id="mv-modal-title">Detalle</h3>
+        <button class="mv-modal__close" type="button" data-close-modal aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="mv-modal__body" id="mv-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="mv-toast" id="mv-toast" hidden></div>
+
+  <script src="/js/misViajes.js"></script>
+</body>
+</html>

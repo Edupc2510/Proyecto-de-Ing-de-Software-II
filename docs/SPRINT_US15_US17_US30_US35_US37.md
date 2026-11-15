@@ -1,0 +1,58 @@
+# Historias US15, US17, US30, US35 y US37: implementación y patrones
+
+**Responsable:** Eduardo · **Rama:** `Rama_Eduardo` · **Sprints 2–4**
+
+Estas historias se agregan al MVP **sin modificar** los módulos existentes (`auth`, `trips`, `dashboards`).
+Cada dominio tiene su carpeta propia en `src/`, igual que el resto del proyecto, y usa
+Controller → Service → DAO.
+
+| HU | Qué hace | Módulo | Endpoints | Patrones |
+|----|----------|--------|-----------|----------|
+| **US15** Visualizar estado de solicitudes | Lista las solicitudes del pasajero con su estado (pendiente, aceptada, rechazada, cancelada, expirada), su progreso y su historial. Permite cancelar una solicitud pendiente. | `src/requests/` | `GET /requests?estado=` · `GET /requests/:id` · `POST /requests/:id/cancel` | Factory Method, DAO |
+| **US17** Visualizar reservas realizadas | Reservas próximas, historial, canceladas o todas, con contadores. | `src/reservations/` | `GET /reservations?filtro=` · `GET /reservations/:id` | Strategy, Iterator, Adapter, DAO |
+| **US35** Confirmar participación en el viaje | El pasajero confirma que asistirá o avisa que no irá, y puede deshacer su decisión antes de la salida. Se resaltan los viajes que salen en menos de 24 h. | `src/reservations/` | `POST /reservations/:id/participation/confirm` · `/decline` · `/undo` | Command, DAO |
+| **US30** Contactar conductores frecuentes | Muestra los conductores con 2 o más viajes completados y permite contactarlos por WhatsApp, llamada, correo o mensaje interno. Guarda un historial de contactos. | `src/drivers/` | `GET /frequent-drivers` · `POST /frequent-drivers/:id/contact` · `GET /frequent-drivers/:id/contacts` | Strategy, Factory Method, DAO |
+| **US37** Consultar estado del reclamo | Lista de reclamos con plazo de respuesta (SLA). El detalle se busca por código (`REC-AAAA-NNNNNN`) y muestra línea de tiempo, respuesta de soporte y viaje asociado. | `src/claims/` | `GET /claims?estado=` · `GET /claims/:codigo` | Facade, Decorator, Singleton, DAO |
+
+**Vista:** `GET /mis-viajes`. Se entra con el botón **"Mis viajes"** del navbar del dashboard
+(`views/mis_viajes.html`, `public/js/misViajes.js`, `public/css/mis_viajes.css`).
+
+## Patrones aplicados
+
+| Patrón | Tipo | Dónde | Problema que resuelve |
+|--------|------|-------|-----------------------|
+| **Singleton** | Creacional | `shared/persistence/JsonDataSource.js` | Un único punto de acceso a la carpeta `/data` para todos los DAO. |
+| **Singleton** | Creacional | `claims/claimCodeGenerator.js` | Códigos de reclamo correlativos y sin duplicados (igual que el `GeneradorNumeroComprobante` visto en clase). |
+| **Factory Method** | Creacional | `requests/requestStatusFactory.js` | Crea el `EstadoSolicitud` concreto (etiqueta, color, reglas como `puedeCancelar()`) sin usar `switch` en el servicio. |
+| **Factory Method** | Creacional | `drivers/contactChannels.js` (`FabricaCanalContacto`) | Decide qué canal de contacto instanciar. |
+| **Adapter** | Estructural | `reservations/bookingAdapter.js` | Traduce las reservas de la US14 (`trips/bookingModel.js`, en la rama de otra integrante) a la interfaz que espera "Mis reservas". |
+| **Facade** | Estructural | `claims/claimFacade.js` | El controlador solo llama a `consultarReclamo()`. La Facade coordina el DAO, el generador, las reservas y los decoradores. |
+| **Decorator** | Estructural | `claims/claimViewDecorators.js` | Agrega a la vista del reclamo el SLA, la línea de tiempo, la respuesta de soporte o el viaje asociado, sin crear una subclase por cada combinación. |
+| **Strategy** | Comportamiento | `reservations/reservationFilters.js` | Un filtro por vista: próximas, historial, canceladas o todas. |
+| **Strategy** | Comportamiento | `drivers/contactChannels.js` | Cada canal (WhatsApp, llamada, correo, mensaje) contacta a su manera, con la misma interfaz. |
+| **Iterator** | Comportamiento | `reservations/reservationCollection.js` | Recorre las reservas filtradas y ordenadas, que vienen de varias fuentes, con `hasNext()` / `next()`. Es el caso "colección filtrada" visto en clase. |
+| **Command** | Comportamiento | `reservations/participationCommands.js` | Confirmar y declinar son comandos con `ejecutar()` y `deshacer()`. El Invoker guarda el historial (auditoría) y permite deshacer. |
+| **DAO** | Acceso a datos | `*DAO.js` + `shared/persistence/JsonDAO.js` | Los servicios no conocen archivos ni JSON. Si se migra a una BD, solo cambian los DAO. |
+
+Diagrama de clases: `diagramas/patrones_us15_us17_us30_us35_us37.puml`.
+
+## Integración con las HU del equipo
+
+- **Reservas de la US14:** si `src/trips/bookingModel.js` existe (rama de US14), `ReservaRepositorio`
+  lo detecta y, gracias al `BookingAdapter`, esas reservas aparecen solas en "Mis reservas",
+  "Conductores frecuentes" y en la confirmación de participación. No hay que cambiar código.
+- **Solicitudes:** `requests/requestModel.js` (`crearSolicitud`, `transicion`) es la función a la que
+  debe llamar la HU que crea solicitudes o que permite al conductor aceptarlas o rechazarlas.
+- **Registrar reclamo:** `ReclamoFacade.registrarReclamo()` y `actualizarEstado()` ya existen para la HU
+  de registro o atención de reclamos.
+- **Datos de demostración:** el botón "Cargar datos de demostración" (`POST /mis-viajes/demo`, deshabilitado
+  en producción) genera datos de ejemplo marcados con `demo: true` para el usuario en sesión.
+
+## Pruebas
+
+```bash
+node --test
+```
+
+Hay 11 pruebas unitarias en `tests/`, una o más por patrón y HU. Usan una carpeta de datos temporal
+(`MOVESHARE_DATA_DIR`), así que no modifican `/data`.

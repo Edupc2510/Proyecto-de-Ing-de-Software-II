@@ -1,0 +1,142 @@
+@startuml patrones_us15_us17_us30_us35_us37
+title MoveShare - Patrones aplicados en US15, US17, US30, US35 y US37
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "shared/persistence" {
+  class JsonDataSource <<Singleton>> {
+    - {static} instanciaUnica
+    + {static} getInstancia()
+    + leerColeccion(archivo)
+    + escribirColeccion(archivo, items)
+  }
+  abstract class JsonDAO <<DAO>> {
+    + listar() / buscarPorId() / guardar()
+    + actualizar() / eliminar()
+  }
+  JsonDAO --> JsonDataSource
+}
+
+package "requests (US15)" {
+  class SolicitudService
+  class SolicitudDAO
+  abstract class EstadoSolicitud <<Producto>>
+  class EstadoPendiente
+  class EstadoAceptada
+  class EstadoRechazada
+  class FabricaEstadoSolicitud <<Factory Method>> {
+    + {static} crearEstado(codigo): EstadoSolicitud
+  }
+  SolicitudDAO --|> JsonDAO
+  SolicitudService --> SolicitudDAO
+  SolicitudService ..> FabricaEstadoSolicitud
+  FabricaEstadoSolicitud ..> EstadoSolicitud : crea
+  EstadoPendiente --|> EstadoSolicitud
+  EstadoAceptada --|> EstadoSolicitud
+  EstadoRechazada --|> EstadoSolicitud
+}
+
+package "reservations (US17, US35)" {
+  class ReservaService
+  class ReservaRepositorio
+  class ReservaDAO
+  class BookingAdapter <<Adapter>>
+  class "trips/bookingModel (US14 equipo)" as BookingModel <<Adaptee>>
+  class ColeccionReservas <<Aggregate>> {
+    + crearIterador(filtro)
+  }
+  class IteradorReservas <<Iterator>> {
+    + hasNext()
+    + next()
+  }
+  interface FiltroReserva <<Strategy>> {
+    + incluye(reserva)
+    + comparar(a, b)
+  }
+  class FiltroProximas
+  class FiltroPasadas
+  class FiltroCanceladas
+  class InvocadorParticipacion <<Invoker>>
+  abstract class ComandoParticipacion <<Command>> {
+    + ejecutar()
+    + deshacer()
+  }
+  class ConfirmarParticipacionCommand
+  class DeclinarParticipacionCommand
+  class GestorParticipacion <<Receiver>>
+
+  ReservaDAO --|> JsonDAO
+  ReservaService --> ReservaRepositorio
+  ReservaRepositorio o--> ReservaDAO
+  ReservaRepositorio o--> BookingAdapter
+  BookingAdapter --> BookingModel : traduce
+  ReservaService ..> ColeccionReservas
+  ColeccionReservas ..> IteradorReservas : crea
+  IteradorReservas --> FiltroReserva
+  FiltroProximas ..|> FiltroReserva
+  FiltroPasadas ..|> FiltroReserva
+  FiltroCanceladas ..|> FiltroReserva
+  ReservaService --> InvocadorParticipacion
+  InvocadorParticipacion --> ComandoParticipacion
+  ConfirmarParticipacionCommand --|> ComandoParticipacion
+  DeclinarParticipacionCommand --|> ComandoParticipacion
+  ComandoParticipacion --> GestorParticipacion
+}
+
+package "drivers (US30)" {
+  class ConductorFrecuenteService
+  class FabricaCanalContacto <<Factory Method>> {
+    + crearCanal(clave): CanalContacto
+  }
+  interface CanalContacto <<Strategy>> {
+    + estaDisponible(conductor)
+    + contactar(datos)
+  }
+  class CanalWhatsApp
+  class CanalLlamada
+  class CanalCorreo
+  class CanalMensajeInterno
+  class ContactoConductorDAO
+  ConductorFrecuenteService --> ReservaRepositorio
+  ConductorFrecuenteService --> FabricaCanalContacto
+  FabricaCanalContacto ..> CanalContacto : crea
+  CanalWhatsApp ..|> CanalContacto
+  CanalLlamada ..|> CanalContacto
+  CanalCorreo ..|> CanalContacto
+  CanalMensajeInterno ..|> CanalContacto
+  CanalMensajeInterno --> ContactoConductorDAO
+  ContactoConductorDAO --|> JsonDAO
+}
+
+package "claims (US37)" {
+  class claimController
+  class ReclamoFacade <<Facade>> {
+    + consultarMisReclamos()
+    + consultarReclamo(codigo)
+  }
+  class ReclamoDAO
+  class GeneradorCodigoReclamo <<Singleton>>
+  interface VistaReclamo <<Componente>> {
+    + construir()
+  }
+  class VistaReclamoBase
+  abstract class DecoradorVistaReclamo <<Decorator>>
+  class ConTiempoDeRespuesta
+  class ConLineaDeTiempo
+  class ConRespuestaSoporte
+  class ConViajeAsociado
+  claimController --> ReclamoFacade
+  ReclamoFacade --> ReclamoDAO
+  ReclamoFacade --> GeneradorCodigoReclamo
+  ReclamoFacade --> ReservaRepositorio
+  ReclamoFacade ..> VistaReclamo
+  ReclamoDAO --|> JsonDAO
+  VistaReclamoBase ..|> VistaReclamo
+  DecoradorVistaReclamo ..|> VistaReclamo
+  DecoradorVistaReclamo o--> VistaReclamo : envuelve
+  ConTiempoDeRespuesta --|> DecoradorVistaReclamo
+  ConLineaDeTiempo --|> DecoradorVistaReclamo
+  ConRespuestaSoporte --|> DecoradorVistaReclamo
+  ConViajeAsociado --|> DecoradorVistaReclamo
+}
+@enduml

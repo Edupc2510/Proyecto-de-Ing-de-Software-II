@@ -31,3 +31,10 @@ coverage/
 # Build folders
 dist/
 build/
+
+# Datos generados en ejecución (US15, US17, US30, US35, US37)
+data/trip_requests.json
+data/reservations.json
+data/participation_log.json
+data/driver_contacts.json
+data/claims.json
