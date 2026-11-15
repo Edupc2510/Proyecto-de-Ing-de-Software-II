@@ -540,13 +540,26 @@ async function cancelPublishedRoute(routeId) {
     return;
   }
 
-  const confirmCancel = confirm('¿Seguro que deseas cancelar esta ruta? Los pasajeros ya no podrán verla.');
+  // US34 - Confirmación de seguridad: el conductor debe escribir "CANCELAR"
+  const confirmation = prompt(
+    'Vas a cancelar esta ruta. Los pasajeros con reserva serán liberados y notificados.\n\n' +
+    'Para confirmar, escribe CANCELAR:'
+  );
 
-  if (!confirmCancel) return;
+  if (confirmation === null) return; // El conductor cerró la ventana
+
+  if (confirmation.trim() !== 'CANCELAR') {
+    alert('⚠️ No se canceló la ruta. Debes escribir exactamente la palabra CANCELAR.');
+    return;
+  }
+
+  const reason = prompt('Motivo de la cancelación (opcional):') || '';
 
   try {
     const res = await fetch(`/trips/${routeId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmation: confirmation.trim(), reason: reason.trim() })
     });
 
     const data = await res.json().catch(() => ({}));
