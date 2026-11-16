@@ -13,6 +13,9 @@ const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
 const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
 const notificationRoutes = require('./src/notifications/notificationRoutes');
+const { createPasswordResetRouter } = require('./src/auth/passwordResetRoutes');
+const { expireChangedPasswordSession } = require('./src/auth/passwordSession');
+const { createReportRouter } = require('./src/reports/reportRoutes');
 const favoriteDriverRoutes = require('./src/drivers/favoriteDriverRoutes');
 // Sprint 2-4 · US19, US25, US27, US28, US32
 const tripCatalogRoutes = require('./src/tripCatalog/tripCatalogRoutes');
@@ -55,6 +58,8 @@ app.use(session({
 // ─────────────────────────────────────────────────────────────
 // RUTAS
 // ─────────────────────────────────────────────────────────────
+app.use(expireChangedPasswordSession);
+app.use('/auth', createPasswordResetRouter());
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
@@ -71,6 +76,7 @@ app.use('/reservations', reservationRoutes);    // US17 - Reservas · US35 - Con
 app.use('/frequent-drivers', frequentDriverRoutes); // US30 - Contactar conductores frecuentes
 app.use('/claims', claimRoutes);                // US37 - Estado del reclamo
 app.use('/mis-viajes', myTripsRoutes);          // Vista "Mis viajes" del pasajero
+app.use('/reports', createReportRouter());
 // Página principal (login/registro)
 // Landing page principal
 app.get('/', (req, res) => {
@@ -93,7 +99,7 @@ app.get('/login', (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // INICIO DEL SERVIDOR
 // ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+if (require.main === module) app.listen(PORT, () => {
   console.log('');
   console.log('  ╔══════════════════════════════════════╗');
   console.log('  ║         MoveShare - Servidor         ║');

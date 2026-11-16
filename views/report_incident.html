@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoveShare · Reportar incidencia</title>
+  <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/rodrigo.css">
+  <script defer src="/js/report_incident.js"></script>
+</head>
+<body class="report-page">
+  <main class="report-card">
+    <a href="/dashboard">← Volver a MoveShare</a>
+    <h1>Reportar una incidencia</h1>
+    <p>Cuéntanos qué pasó en tu viaje. Recibirás un código para identificar tu reclamo.</p>
+    <form id="report-form">
+      <label for="report-trip">Viaje relacionado</label>
+      <select id="report-trip" class="form-input" required disabled><option value="">Cargando tus viajes…</option></select>
+      <label for="report-category">Motivo</label>
+      <select id="report-category" class="form-input" required>
+        <option value="">Selecciona un motivo</option>
+        <option value="seguridad">Seguridad en el viaje</option><option value="conducta">Conducta de un participante</option>
+        <option value="cobro">Cobro o pago</option><option value="objeto_perdido">Objeto perdido</option>
+        <option value="ruta">Ruta u horario</option><option value="aplicacion">Problema con la aplicación</option>
+      </select>
+      <label for="report-description">Descripción</label>
+      <textarea id="report-description" class="form-input" rows="5" maxlength="1000" required aria-describedby="report-hint" placeholder="Describe lo ocurrido."></textarea>
+      <small id="report-hint">Hasta 1000 caracteres. Evita incluir contraseñas u otros datos privados.</small>
+      <button class="btn btn--primary" id="report-submit" disabled>Registrar reclamo</button>
+    </form>
+    <p id="report-message" role="status" aria-live="polite"></p>
+    <p id="report-code" class="report-code" hidden></p>
+    <a href="/reports/new" id="report-again" hidden>Reportar otra incidencia</a>
+  </main>
+</body>
+</html>

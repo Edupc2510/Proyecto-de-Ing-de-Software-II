@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { updateTripDetails } = require('./tripDetails');
+const { requireApiAuth } = require('../shared/middleware/authMiddleware');
+router.patch('/:routeId/details', requireApiAuth, updateTripDetails);
 
 // Importamos las funciones del controlador
 const {
@@ -22,7 +25,7 @@ const { getRouteForEdit, editPublishedRoute } = require('./routeEditController')
 router.get('/', getAllRoutes);
 
 // Publicar una nueva ruta
-router.post('/', publishRoute);
+router.post('/', requireApiAuth, publishRoute);
 //registrar end point para unirse a la ruta
 router.post('/join', joinRoute);
 // Rutas publicadas por el conductor en sesión

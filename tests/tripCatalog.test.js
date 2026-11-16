@@ -131,3 +131,15 @@ test('La vista de cada viaje incluye el nombre y la reputación del conductor (i
   assert.strictEqual(sinConductor.driverName, null);
   assert.strictEqual(sinConductor.driverRating, null);
 });
+
+
+test('US26 + US27/28: combina horario, cupos, tarifa y visibilidad antes de ordenar', () => {
+  const viajes = [viaje(1, 60, 4, { time: '11:00', price: 5 }), viaje(2, 20, 2, { time: '10:20', price: 5 }),
+    viaje(3, 10, 1, { time: '10:10', price: 5 }), viaje(4, 30, 3, { time: '10:30', price: 20 }),
+    viaje(5, 40, 4, { time: '10:40', price: 5 })];
+  const service = crearService(viajes, { visibilidad: { estaVisible: id => id !== 'd5' } });
+  const filtros = { timeFrom: '10:00', timeTo: '11:00', minSeats: '2', tarifaMax: '10' };
+  assert.deepStrictEqual(ids(service.listar({ ...filtros, orden: 'masProximos' })), [2, 1]);
+  assert.deepStrictEqual(ids(service.listar({ ...filtros, orden: 'masAsientos' })), [1, 2]);
+  assert.deepStrictEqual(ids(service.listar({ ...filtros, timeTo: '10:30' })), [2]);
+});

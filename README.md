@@ -1,5 +1,11 @@
 # MoveShare 🚗
 
+## Trabajo de Rodrigo · Ingeniería de Software II
+
+La rama `Rama-Rodrigo` añade US20 (recuperar contraseña), US22 (detalles del viaje), US26 (filtros) y US36 (reportar incidencia). La documentación académica y el material personal de exposición se conservan por separado, fuera del repositorio.
+
+Para probar: `npm test`. Para obtener cobertura: `npm run test:coverage`. Validado con Node.js 24.21.0; las pruebas usan archivos temporales y correo simulado. Las 142 pruebas pasan en la adaptación local a Main `3aea6c4`, incluidas las pruebas heredadas del equipo. El 16/11/2026 se comprobó además el correo real de recuperación y reclamo con una cuenta personal y datos aislados. La configuración de la cuenta emisora del equipo y la revisión/publicación del PR de Rodrigo siguen pendientes.
+
 > **Plataforma universitaria de movilidad compartida en Lima Metropolitana**
 
 MoveShare conecta estudiantes universitarios que comparten rutas frecuentes en Lima, ayudándoles a reducir costos de transporte y optimizar sus viajes diarios mediante carpooling.
@@ -38,14 +44,14 @@ MoveShare conecta estudiantes universitarios que comparten rutas frecuentes en L
 ### 1. Clona el repositorio
 
 ```bash
-git clone <https://github.com/Jotage-2/Proyecto-de-Ing-de-Software.git>
-cd moveshare
+git clone https://github.com/Edupc2510/Proyecto-de-Ing-de-Software-II.git
+cd Proyecto-de-Ing-de-Software-II
 ```
 
 ### 2. Instala las dependencias
 
 ```bash
-npm install
+npm ci
 ```
 
 ### 3. Configura las variables de entorno
@@ -58,6 +64,7 @@ Edita el archivo `.env` con tus credenciales:
 
 ```env
 PORT=3000
+APP_BASE_URL=http://localhost:3000
 SESSION_SECRET=una_cadena_secreta_larga_y_aleatoria
 EMAIL_USER=tuemail@gmail.com
 EMAIL_PASS=tu_contraseña_de_aplicacion_google
@@ -93,7 +100,7 @@ MoveShare usa Gmail para enviar correos de verificación. **No uses tu contrase�
 5. Google genera un código de **16 caracteres** (ej: `abcd efgh ijkl mnop`)
 6. Cópialo **sin espacios** y pégalo en `EMAIL_PASS` del `.env`
 
-> **Modo desarrollo sin email**: Si no configuras las credenciales, el servidor imprime el código de verificación en la consola (`[DEV] Código de verificación para email@x.com: 123456`) y lo muestra en pantalla.
+> **Modo desarrollo heredado de registro**: el registro puede mostrar su código de verificación si falla el correo. Esto no aplica a recuperar contraseña: US20 no imprime el enlace ni lo devuelve al navegador. Para probar ese flujo sin SMTP, ejecutar las pruebas automatizadas.
 
 ---
 
@@ -106,23 +113,17 @@ moveshare/
 ├── .env.example               # Plantilla de variables de entorno
 ├── README.md                  # Este archivo
 │
-├── controllers/
-│   ├── authController.js      # Lógica de registro, verificación, login, logout
-│   └── dashboardController.js # Lógica del dashboard y perfil
-│
-├── models/
-│   ├── userModel.js           # Funciones CRUD para users.json
-│   └── emailService.js        # Envío de correos con Nodemailer
-│
-├── routes/
-│   ├── authRoutes.js          # Rutas: /auth/register, /login, /verify, /logout
-│   └── dashboardRoutes.js     # Rutas: /dashboard, /dashboard/profile
-│
-├── middleware/
-│   └── authMiddleware.js      # requireAuth: protección de rutas
+├── src/
+│   ├── auth/                  # Registro, login, recuperación, usuarios y correo
+│   ├── dashboards/            # Vista principal y perfil
+│   ├── trips/                 # Rutas, detalles, filtros y vínculos de viaje
+│   ├── reports/               # Registro de incidencias y persistencia de reclamos
+│   └── shared/middleware/     # Middleware compartido
+├── tests/                     # Pruebas unitarias y de integración de Rodrigo
 │
 ├── data/
-│   └── users.json             # Persistencia de usuarios (JSON local)
+│   ├── users.json             # Usuarios (JSON local)
+│   └── routes.json            # Rutas; bookings.json y claims.json se crean al usar sus flujos
 │
 ├── views/
 │   ├── index.html             # Página de login y registro
@@ -145,21 +146,21 @@ moveshare/
 ### `app.js`
 Configura Express, middlewares (JSON, sesiones, static), monta las rutas y arranca el servidor en el puerto definido en `.env`.
 
-### `controllers/authController.js`
+### `src/auth/authController.js`
 - `register()`: valida, hashea contraseña, crea usuario en JSON, genera código OTP, envía email.
 - `verifyCode()`: valida código OTP en memoria, marca usuario como `verified: true`.
 - `login()`: valida credenciales, verifica que la cuenta esté verificada, crea sesión.
 - `logout()`: destruye la sesión.
 - `getMe()`: retorna datos del usuario de la sesión activa.
 
-### `models/userModel.js`
-Funciones puras para leer/escribir `data/users.json`:
+### `src/auth/userModel.js`
+Funciones de acceso al archivo `data/users.json`:
 - `readUsers()` / `writeUsers()`
 - `findUserByEmail()` / `findUserById()`
 - `createUser()` / `updateUser()`
 
-### `models/emailService.js`
-Crea el transporter de Nodemailer con credenciales de `process.env` y envía el correo HTML de verificación.
+### `src/auth/emailService.js`
+Crea el transporte SMTP con credenciales de `process.env` y envía verificación, enlace de recuperación y confirmación de reclamo.
 
 ### `public/js/auth.js`
 Maneja el frontend de autenticación: cambio entre tabs (login/registro/verificación), llamadas `fetch` a la API, inputs de código OTP con navegación automática entre celdas.
@@ -168,7 +169,7 @@ Maneja el frontend de autenticación: cambio entre tabs (login/registro/verifica
 - Carga el perfil del usuario al iniciar.
 - `selectRole()`: navega entre pantallas según el rol elegido.
 - `initPassengerMap()`: inicializa Leaflet con marcadores y polyline azul en Lima.
-- `handlePublishRoute()`: valida y guarda rutas del conductor en memoria de sesión.
+- `handlePublishRoute()`: valida y envía la ruta a `POST /trips`; el servidor la guarda en JSON.
 - `setViewMode()`: alterna entre modo PC y simulación de smartphone.
 
 ---
@@ -216,15 +217,9 @@ La transición usa CSS `transition` y el mapa Leaflet es invalidado con `invalid
 
 ---
 
-## 🗺 Ruta precargada en el mapa
+## 🗺 Rutas en el mapa
 
-La vista de pasajero muestra una ruta real en Lima Metropolitana:
-
-- **Origen**: Av. Arequipa con Javier Prado (Miraflores)
-- **Destino**: Universidad de Lima (La Molina / Jockey Plaza)
-- **Polyline**: azul (`#2979FF`), trazada con puntos intermedios reales por Javier Prado Este
-- **Marcadores**: iconos personalizados SVG (azul = origen, rojo = destino)
-- **Tiles**: OpenStreetMap
+La vista de pasajero carga rutas publicadas mediante `GET /trip-catalog`, combinando filtros y ordenamiento. El modal representa las coordenadas de la ruta seleccionada con Leaflet y mapas de OpenStreetMap. Los mapas, búsqueda de direcciones y cálculo de recorrido dependen de servicios externos y de conectividad.
 
 ---
 

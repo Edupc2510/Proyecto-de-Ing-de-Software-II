@@ -23,7 +23,7 @@ function crearService({ visibilidad } = {}) {
 function crearControlador(service) {
   return {
     listar: handle((req, res) => {
-      const resultado = service.listar({ orden: req.query.orden, tarifaMax: req.query.tarifaMax });
+      const resultado = service.listar({ orden: req.query.orden, tarifaMax: req.query.tarifaMax, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo, minSeats: req.query.minSeats });
       res.status(200).json({ success: true, ...resultado });
     }, 'TripCatalog.listar'),
   };

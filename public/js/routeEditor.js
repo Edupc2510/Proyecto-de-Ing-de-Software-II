@@ -50,7 +50,7 @@
 
           <label class="cancel-field" for="edit-route-notes">
             <span>Detalles de la ruta <span class="cancel-field__optional">(avenidas, referencias)</span></span>
-            <textarea id="edit-route-notes" maxlength="300" rows="2" placeholder="Ej: Voy por Av. Javier Prado"></textarea>
+            <textarea id="edit-route-notes" maxlength="500" rows="2" placeholder="Hasta 500 caracteres; se avisa a los pasajeros"></textarea>
           </label>
 
           <div id="edit-route-error" class="form-message form-message--error" style="display:none;"></div>

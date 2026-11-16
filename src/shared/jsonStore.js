@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = process.env.MOVESHARE_DATA_DIR || path.join(__dirname, '../../data');
 
 /**
  * Crea un "store" para un archivo JSON que contiene un array.
@@ -18,6 +18,7 @@ function createJsonStore(fileName) {
 
   function read() {
     try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
       if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, '[]', 'utf8');
         return [];
@@ -36,6 +37,7 @@ function createJsonStore(fileName) {
 
   function write(items) {
     try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
       fs.writeFileSync(filePath, JSON.stringify(items, null, 2), 'utf8');
       return true;
     } catch (error) {

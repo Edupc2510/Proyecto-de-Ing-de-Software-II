@@ -6,6 +6,7 @@
 // clase y sumarlo en construirFiltros(): el servicio no cambia (OCP).
 // ─────────────────────────────────────────────────────────────
 
+const { parseRouteFilters, filterRoutes } = require('../trips/routeFilters');
 const { DomainError } = require('../shared/httpHelpers');
 
 class FiltroTarifaMaxima {
@@ -24,7 +25,11 @@ class FiltroTarifaMaxima {
  * @param {{ tarifaMax?: string|number }} consulta
  */
 function construirFiltros(consulta = {}) {
-  const filtros = [];
+  let routeFilters;
+  try { routeFilters = parseRouteFilters(consulta); }
+  catch (error) { throw new DomainError(error.message, 400); }
+  // US26: reutiliza la misma validación y combina filtros antes de ordenar.
+  const filtros = [{ acepta: viaje => filterRoutes([viaje], routeFilters).length > 0 }];
   const { tarifaMax } = consulta;
 
   if (tarifaMax !== undefined && tarifaMax !== null && tarifaMax !== '') {

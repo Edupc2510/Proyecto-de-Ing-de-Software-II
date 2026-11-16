@@ -12,10 +12,7 @@ function createTransporter() {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    tls: {
-      rejectUnauthorized: false, // Evita caídas por bloqueos de certificados
-      ciphers: 'SSLv3'           // Fuerza compatibilidad estable de cifrado
-    },
+    requireTLS: true,
     connectionTimeout: 10000, // Si en 10 segundos no conecta, aborta (evita que el server se congele)
     greetingTimeout: 5000,
     socketTimeout: 15000
@@ -93,4 +90,28 @@ async function sendVerificationEmail(toEmail, userName, code) {
   }
 }
 
-module.exports = { sendVerificationEmail };
+// US20: el enlace se envía solamente al correo del propietario de la cuenta.
+async function sendPasswordResetEmail(toEmail, resetUrl) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('El servicio de correo no está configurado.');
+  }
+  const result = await createTransporter().sendMail({
+    from: `"MoveShare" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'MoveShare - Restablecer contraseña',
+    text: `Solicitaste cambiar tu contraseña en MoveShare.\n\nAbre este enlace: ${resetUrl}\n\nVence en 15 minutos y solo puede usarse una vez. Si no lo solicitaste, ignora este correo.`,
+  });
+  if (!result.accepted?.length) throw new Error('El servidor de correo no aceptó el mensaje.');
+}
+
+async function sendReportConfirmationEmail(toEmail, code) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) throw new Error('Correo sin configurar.');
+  const result = await createTransporter().sendMail({
+    from: `"MoveShare" <${process.env.EMAIL_USER}>`, to: toEmail,
+    subject: 'MoveShare - Reclamo registrado',
+    text: `Tu reclamo fue registrado en MoveShare.\n\nCódigo: ${code}\nEstado: Registrado\n\nGuarda este código para consultar el seguimiento.`,
+  });
+  if (!result.accepted?.length) throw new Error('Correo no aceptado.');
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendReportConfirmationEmail };

@@ -19,6 +19,8 @@ const { findUserById } = require('../auth/userModel');
 // y los strikes (US34) los manejan los observadores registrados en src/shared/events.
 const { tripEvents, TRIP_EVENTS } = require('../shared/events/tripEvents');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
+const { parseRouteFilters, filterRoutes } = require('./routeFilters');
+const { validateNotes } = require('./tripNotes');
 const { validatePickupPoint } = require('./pickupValidator');
 const { AccountFacade } = require('../account/accountFacade');
 
@@ -39,19 +41,17 @@ const getFullName = (user) =>
  * pueda seguir viendo sus solicitudes (US14).
  */
 const cleanupExpiredRoutes = (routes, now = Date.now()) => {
-    const kept = routes.filter(route => isRouteCancelled(route) || !isRouteExpired(route, now));
-
-    if (kept.length !== routes.length) {
-        saveRoutes(kept);
-        console.log(`[Backend] Se eliminaron ${routes.length - kept.length} rutas vencidas.`);
-    }
-
-    return kept;
+    // US36 necesita conservar el vínculo histórico también para el conductor.
+    // La disponibilidad se filtra al consultar, sin borrar registros.
+    return routes;
 };
 
 // A partir de aquí ya podemos usar getRoutes() y saveRoutes() en tus funciones del controlador
 // 1. Crear la función para obtener todas las rutas
 const getAllRoutes = (req, res) => {
+    let filters;
+    try { filters = parseRouteFilters(req.query); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
     try {
         // 1. Traer todas las rutas del archivo JSON
         const allRoutes = getRoutes();
@@ -74,7 +74,7 @@ const getAllRoutes = (req, res) => {
             });
 
         // 4. Devolver solo las rutas válidas al pasajero
-        res.status(200).json(validRoutes);
+        res.status(200).json(filterRoutes(validRoutes, filters));
         
     } catch (error) {
         console.error("Error en getAllRoutes:", error);
@@ -92,7 +92,9 @@ const publishRoute = (req, res) => {
         const origin = String(body.origin || '').trim();
         const dest = String(body.dest || '').trim();
         const time = String(body.time || '').trim();
-        const notes = String(body.notes || '').trim();
+        const notesError = validateNotes(body.notes ?? '', false);
+        if (notesError) return res.status(400).json({ error: notesError });
+        const notes = (body.notes || '').trim();
 
         const seats = Number(body.seats);
         const originCoords = body.originCoords;
@@ -201,6 +203,8 @@ const publishRoute = (req, res) => {
             dest,
             destCoords: [destLat, destLng],
             seats,
+            initialSeats: seats,
+            totalSeats: seats,
             time,
             notes,
             expiresAtTimestamp: expiresAt.getTime(),
@@ -298,13 +302,6 @@ const joinRoute = (req, res) => {
         const hasExpiration = Number.isFinite(expiresAtTimestamp) && expiresAtTimestamp > 0;
 
         if (hasExpiration && expiresAtTimestamp <= Date.now()) {
-            routes.splice(routeIndex, 1);
-
-            const saved = saveRoutes(routes);
-            if (!saved) {
-                throw new Error("No se pudo eliminar la ruta expirada.");
-            }
-
             return res.status(410).json({
                 error: "Esta ruta ya venció y fue retirada de la lista."
             });

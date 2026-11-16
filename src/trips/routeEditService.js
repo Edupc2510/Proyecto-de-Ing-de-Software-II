@@ -4,6 +4,8 @@
 const { getBookingsByRoute, BOOKING_STATUS } = require('./bookingModel');
 const { isValidCoords } = require('../shared/geoUtils');
 
+const { validateNotes } = require('./tripNotes');
+
 const EDIT_LOCK_MINUTES = 30;
 const MAX_SEATS = 4;
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -52,7 +54,7 @@ function getRouteCapacity(route) {
  */
 function isEditLocked(route, now = Date.now()) {
   const departure = Number(route.expiresAtTimestamp);
-  if (!Number.isFinite(departure)) return false;
+  if (!Number.isFinite(departure)) return true;
   return departure - now < EDIT_LOCK_MINUTES * 60 * 1000;
 }
 
@@ -131,6 +133,7 @@ function applyRouteEdit({ route, userId, changes = {}, now = Date.now() }) {
 
     if (totalSeats !== capacity.total) {
       updated.totalSeats = totalSeats;
+      updated.initialSeats = totalSeats;
       updated.seats = totalSeats - capacity.occupied;
       changedFields.push('totalSeats');
     }
@@ -138,10 +141,13 @@ function applyRouteEdit({ route, userId, changes = {}, now = Date.now() }) {
 
   // Detalles de la ruta: avenidas, referencias (US33 - Escenario 03)
   if (changes.notes !== undefined) {
-    const notes = String(changes.notes).trim().slice(0, 300);
+    const error = validateNotes(changes.notes);
+    if (error) throw new RouteEditError(error);
+    const notes = changes.notes.trim();
 
     if (notes !== String(route.notes || '')) {
       updated.notes = notes;
+      updated.detailsUpdatedAt = new Date(now).toISOString();
       changedFields.push('notes');
     }
   }

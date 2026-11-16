@@ -1,0 +1,52 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { once } = require('node:events');
+const bcrypt = require('bcryptjs');
+
+test('US20: HTTP, correo simulado, JSON real, login y revocación de sesión', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'moveshare-us20-'));
+  process.env.MOVESHARE_DATA_DIR = directory;
+  const user = { id: 'test-http', firstName: 'Prueba', lastName: 'Local', email: 'prueba@example.test',
+    verified: true, password: await bcrypt.hash('Anterior123', 10) };
+  fs.writeFileSync(path.join(directory, 'users.json'), JSON.stringify([user]));
+  const emailService = require('../src/auth/emailService');
+  let resetUrl;
+  t.mock.method(emailService, 'sendPasswordResetEmail', async (to, url) => { resetUrl = url; });
+  const app = require('../app');
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(async () => {
+    await new Promise(resolve => server.close(resolve));
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (route, body) => fetch(base + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const oldLogin = await post('/auth/login', { email: user.email, password: 'Anterior123' });
+  assert.equal(oldLogin.status, 200);
+  const cookie = oldLogin.headers.get('set-cookie').split(';')[0];
+  const page = await fetch(base + '/auth/forgot-password');
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get('referrer-policy'), 'no-referrer');
+  assert.match(await page.text(), /request-form/);
+  const invalid = await post('/auth/forgot-password', { email: 'incorrecto' });
+  assert.equal(invalid.status, 400);
+  const requested = await post('/auth/forgot-password', { email: user.email });
+  assert.equal(requested.status, 200);
+  assert.equal((await requested.json()).token, undefined);
+  assert.ok(resetUrl);
+  const token = new URLSearchParams(new URL(resetUrl).hash.slice(1)).get('token');
+  const changed = await post('/auth/reset-password', { token, password: 'NuevaClave123', confirmation: 'NuevaClave123' });
+  assert.equal(changed.status, 200);
+  assert.equal((await post('/auth/reset-password', { token, password: 'NuevaClave123', confirmation: 'NuevaClave123' })).status, 400);
+  const stale = await fetch(base + '/auth/me', { headers: { Cookie: cookie } });
+  assert.equal(stale.status, 401);
+  assert.equal((await post('/auth/login', { email: user.email, password: 'Anterior123' })).status, 401);
+  assert.equal((await post('/auth/login', { email: user.email, password: 'NuevaClave123' })).status, 200);
+  for (let i = 0; i < 7; i += 1) await post('/auth/forgot-password', { email: 'nadie@example.test' });
+  assert.equal((await post('/auth/forgot-password', { email: user.email })).status, 429);
+  const saved = JSON.parse(fs.readFileSync(path.join(directory, 'users.json')))[0];
+  assert.equal(await bcrypt.compare('NuevaClave123', saved.password), true);
+});

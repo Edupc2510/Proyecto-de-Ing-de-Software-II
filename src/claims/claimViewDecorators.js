@@ -131,7 +131,9 @@ class ConViajeAsociado extends DecoradorVistaReclamo {
     const reserva = this.reclamo.reservationId ? this.buscarReserva(this.reclamo.reservationId) : null;
     vista.viaje = reserva
       ? { reservaId: reserva.id, origen: reserva.route?.origin, destino: reserva.route?.dest, salida: reserva.route?.departureAt, conductor: reserva.driver?.name }
-      : null;
+      : this.reclamo.routeSnapshot
+        ? { reservaId: this.reclamo.reservationId || null, origen: this.reclamo.routeSnapshot.origin, destino: this.reclamo.routeSnapshot.dest, salida: this.reclamo.routeSnapshot.time, conductor: null }
+        : null;
     return vista;
   }
 }

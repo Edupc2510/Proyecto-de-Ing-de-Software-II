@@ -308,6 +308,11 @@ async function handlePublishRoute() {
 
   hideDriverMsg();
 
+  if (notes.length > 500) {
+    showDriverMsg('error', 'Los detalles pueden tener hasta 500 caracteres.');
+    return;
+  }
+
   if (!origin || !dest) {
     showDriverMsg('error', '⚠️ El origen y destino son obligatorios.');
     return;
@@ -486,6 +491,8 @@ function renderPublishedRoutes() {
           ${route.seats} asiento${route.seats !== 1 ? 's' : ''}
         </span>`}
         ${route.notes ? `<span class="published-route-badge">${escapeHTML(route.notes.slice(0, 40))}${route.notes.length > 40 ? '…' : ''}</span>` : ''}
+        <button type="button" class="btn btn--ghost btn--sm published-route-details" data-route-id="${escapeHTML(route.id)}">Editar detalles</button>
+        <a class="btn btn--ghost btn--sm" href="/reports/new?routeId=${encodeURIComponent(route.id)}">Reportar</a>
         <!-- US14: ver los pasajeros que reservaron en esta ruta -->
         <button
           type="button"
@@ -516,6 +523,12 @@ function renderPublishedRoutes() {
   `).join('');
 
   container.innerHTML = heading + items;
+  container.querySelectorAll('.published-route-details').forEach(button => {
+    button.addEventListener('click', () => {
+      const route = publishedRoutes.find(row => String(row.id) === button.dataset.routeId);
+      if (route) openTripDetailsEditor(route);
+    });
+  });
   container.querySelectorAll('.published-route-cancel').forEach(button => {
   button.addEventListener('click', () => {
     const routeId = button.dataset.routeId;
@@ -1007,13 +1020,16 @@ async function handleLogout() {
  * Pide todas las rutas publicadas al backend y las filtra mostrando lo que está "Cerca".
  * Usa la geolocalización del navegador.
  */
+let passengerRequestNumber = 0;
 async function loadPassengerRoutes() {
+  const requestNumber = ++passengerRequestNumber;
+  const filters = typeof getTripFilterQuery === 'function' ? getTripFilterQuery() : '';
   try {
-    // US27/US28: catálogo ordenable (GET /trip-catalog) en lugar de /trips
-    const res = await fetch(TripSortControl.catalogUrl());
-    if (!res.ok) throw new Error('No se pudieron cargar las rutas disponibles.');
-
+    const catalogUrl = TripSortControl.catalogUrl();
+    const res = await fetch(`${catalogUrl}${filters ? (catalogUrl.includes('?') ? '&' : '?') + filters : ''}`);
     const catalog = await res.json();
+    if (requestNumber !== passengerRequestNumber) return;
+    if (!res.ok) throw new Error(catalog.error || 'No se pudieron cargar las rutas disponibles.');
     const routes = catalog.viajes;
     TripSortControl.render(catalog.ordenes, catalog.orden);
     const routesContainer = document.getElementById('dynamic-passenger-routes');
@@ -1021,14 +1037,13 @@ async function loadPassengerRoutes() {
 
     if (!Array.isArray(routes) || routes.length === 0) {
       lastPassengerRoutesSignature = null;
-      routesContainer.innerHTML = '<p style="padding: 1rem; color: #4A5068; text-align: center;">No hay rutas disponibles por el momento.</p>';
+      routesContainer.textContent = filters ? 'No hay viajes que coincidan con tus filtros. Puedes cambiarlos o limpiarlos.' : 'No hay rutas disponibles por el momento.';
       return;
     }
 
     // US28 esc.04: el refresco automático solo repinta si cambió el orden o los asientos
-    const signature = JSON.stringify(routes.map(route => [route.id, route.seats]));
+    const signature = JSON.stringify(routes);
     if (signature === lastPassengerRoutesSignature) return;
-    lastPassengerRoutesSignature = signature;
 
     const getUserLocation = () => new Promise(resolve => {
       const defaultLocation = [-12.046374, -77.042793]; // Lima centro como respaldo
@@ -1064,7 +1079,9 @@ async function loadPassengerRoutes() {
 
     passengerLocationPromise = passengerLocationPromise || getUserLocation();
     const [userLat, userLng] = await passengerLocationPromise;
+    if (requestNumber !== passengerRequestNumber) return;
 
+    lastPassengerRoutesSignature = signature;
     routesContainer.innerHTML = routes.map((route, index) => {
       const driverOriginCoords = getRouteOriginCoords(route);
 
@@ -1143,19 +1160,21 @@ async function loadPassengerRoutes() {
         driverLat,
         driverLng,
         destLat,
-        destLng
+        destLng,
+        route.notes
         );
       });
     });
 
   } catch (err) {
+    if (requestNumber !== passengerRequestNumber) return;
     console.error('[Dashboard] Error cargando rutas:', err);
     lastPassengerRoutesSignature = null;
 
     const routesContainer = document.getElementById('dynamic-passenger-routes');
 
     if (routesContainer) {
-      routesContainer.innerHTML = '<p style="padding: 1rem; color: #B00020; text-align: center;">No se pudieron cargar las rutas. Intenta nuevamente.</p>';
+      routesContainer.textContent = err.message || 'No se pudieron cargar las rutas. Intenta nuevamente.';
     }
   }
 }
@@ -1168,7 +1187,7 @@ async function loadPassengerRoutes() {
 // - mostrar el mapa del punto de encuentro
 // - confirmar la reserva
 // No debe mezclarse con la lógica del formulario del conductor.
-function openRouteModal(routeId, origin, destination, time, seats, driverLat, driverLng, destLat, destLng) {
+function openRouteModal(routeId, origin, destination, time, seats, driverLat, driverLng, destLat, destLng, notes = '') {
   selectedRouteIdForBooking = routeId;
 
   const modal = document.getElementById('route-detail-modal');
@@ -1183,6 +1202,8 @@ function openRouteModal(routeId, origin, destination, time, seats, driverLat, dr
   const destText = document.getElementById('modal-dest-text');
   const timeText = document.getElementById('modal-time-text');
   const seatsText = document.getElementById('modal-seats-text');
+  const notesText = document.getElementById('modal-notes-text');
+  if (notesText) notesText.textContent = notes || 'Sin detalles adicionales.';
 
   if (originText) originText.textContent = origin;
   if (destText) destText.textContent = destination;
