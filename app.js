@@ -13,6 +13,7 @@ const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
 const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
 const notificationRoutes = require('./src/notifications/notificationRoutes');
+const favoriteDriverRoutes = require('./src/drivers/favoriteDriverRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
 app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
 app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
+app.use('/favorite-drivers', favoriteDriverRoutes); // US29 - Conductores frecuentes
 // Página principal (login/registro)
 // Landing page principal
 app.get('/', (req, res) => {
