@@ -30,6 +30,14 @@ function registerNotificationObserver(bus) {
       NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_CANCELLED, { route, booking, reason })
     ));
   });
+
+  // US33: ruta editada -> aviso urgente a cada pasajero con reserva activa
+  bus.subscribe(TRIP_EVENTS.ROUTE_UPDATED, 'notificaciones', ({ route, affectedBookings = [], changedLabels }) => {
+    if (affectedBookings.length === 0) return;
+    createNotifications(affectedBookings.map(booking =>
+      NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_UPDATED, { route, booking, changedLabels })
+    ));
+  });
 }
 
 module.exports = { registerNotificationObserver };

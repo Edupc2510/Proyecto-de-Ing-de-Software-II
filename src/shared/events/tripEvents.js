@@ -21,6 +21,7 @@ const TRIP_EVENTS = {
   ROUTE_PUBLISHED: 'ruta_publicada',   // US31: buscar pasajeros con ruta habitual coincidente
   BOOKING_CREATED: 'reserva_creada',   // US14: avisar al conductor de la nueva solicitud
   ROUTE_CANCELLED: 'ruta_cancelada',   // US34: avisar a pasajeros y revisar cancelación tardía
+  ROUTE_UPDATED: 'ruta_actualizada',   // US33: avisar a pasajeros que el conductor edito la ruta
 };
 
 class TripEventBus {

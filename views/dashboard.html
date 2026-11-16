@@ -127,6 +127,12 @@
             </div>
           </div>
 
+          <!-- US23: historial de viajes del pasajero -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-sm);">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="FavoriteDrivers.open()" style="margin-right: var(--space-xs);">&#11088; Mis conductores</button>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="TripHistory.open()">&#128338; Mis viajes</button>
+          </div>
+
           <div id="trip-sort-bar" class="trip-sort-bar"></div>
           <div id="dynamic-passenger-routes"></div>
           <div id="passenger-routes-anchor"></div>
@@ -295,10 +301,14 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="/js/addressSearch.js"></script>
+  <script src="/js/pickupSelector.js"></script>
+  <script src="/js/tripHistory.js"></script>
+  <script src="/js/favoriteDrivers.js"></script>
   <script src="/js/tripSort.js"></script>
   <script src="/js/dashboard.js"></script>
   <script src="/js/driverRequests.js"></script>
   <script src="/js/routeCancel.js"></script>
+  <script src="/js/routeEditor.js"></script>
   <script src="/js/driverRating.js"></script>
   <script src="/js/notifications.js"></script>
 
@@ -325,6 +335,12 @@
 
         <div class="map-wrapper" style="height: 250px; margin-bottom: var(--space-sm);">
           <div id="modal-map" style="width: 100%; height: 100%; border-radius: inherit;"></div>
+        </div>
+
+        <!-- US21: punto de recojo elegido por el pasajero -->
+        <div style="margin-bottom: var(--space-sm); font-family: 'DM Sans', sans-serif;">
+          <p style="margin: var(--space-xs) 0;">&#128587; <strong>Tu punto de recojo:</strong> <span id="modal-pickup-text">Toca el mapa para elegir d&oacute;nde te recogen</span></p>
+          <button type="button" class="btn btn--ghost" style="width: 100%;" onclick="PickupSelector.useMyLocation()">&#128205; Usar mi ubicaci&oacute;n</button>
         </div>
 
         <div style="display: flex; gap: var(--space-sm);">

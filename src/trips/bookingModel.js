@@ -20,7 +20,7 @@ const saveBookings = (bookings) => store.write(bookings);
 /**
  * Registra una nueva reserva de un pasajero sobre una ruta.
  */
-function createBooking({ route, passengerId }) {
+function createBooking({ route, passengerId, pickupPoint = null }) {
   const bookings = getBookings();
 
   const booking = {
@@ -28,6 +28,7 @@ function createBooking({ route, passengerId }) {
     routeId: String(route.id),
     driverId: route.driverId ? String(route.driverId) : null,
     passengerId: String(passengerId),
+    pickupPoint, // US21: punto de recojo elegido por el pasajero
     status: BOOKING_STATUS.CONFIRMED,
     routeSnapshot: {
       origin: route.origin,

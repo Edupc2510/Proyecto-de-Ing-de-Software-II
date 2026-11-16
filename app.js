@@ -13,6 +13,7 @@ const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
 const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
 const notificationRoutes = require('./src/notifications/notificationRoutes');
+const favoriteDriverRoutes = require('./src/drivers/favoriteDriverRoutes');
 // Sprint 2-4 · US19, US25, US27, US28, US32
 const tripCatalogRoutes = require('./src/tripCatalog/tripCatalogRoutes');
 const accountRoutes = require('./src/account/accountRoutes');
@@ -59,6 +60,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
 app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
 app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
+app.use('/favorite-drivers', favoriteDriverRoutes); // US29 - Conductores frecuentes
 // Sprint 2-4 · US19, US25, US27, US28, US32
 app.use('/trip-catalog', tripCatalogRoutes);  // US27 / US28 - Ordenar viajes por horario y por asientos
 app.use('/account', accountRoutes);           // US19 - Editar perfil · US32 - Gestión avanzada de cuenta

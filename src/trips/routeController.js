@@ -19,6 +19,7 @@ const { findUserById } = require('../auth/userModel');
 // y los strikes (US34) los manejan los observadores registrados en src/shared/events.
 const { tripEvents, TRIP_EVENTS } = require('../shared/events/tripEvents');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
+const { validatePickupPoint } = require('./pickupValidator');
 const { AccountFacade } = require('../account/accountFacade');
 
 // US32: política de cuenta (una cuenta pausada no aparece en búsquedas ni recibe solicitudes)
@@ -318,6 +319,21 @@ const joinRoute = (req, res) => {
             });
         }
 
+        // US21: validar el punto de recojo elegido por el pasajero (si lo envia)
+        let pickupPoint = null;
+
+        if (req.body?.pickupPoint) {
+            const pickupResult = validatePickupPoint(req.body.pickupPoint, route);
+
+            if (!pickupResult.valid) {
+                return res.status(pickupResult.status).json({
+                    error: pickupResult.error
+                });
+            }
+
+            pickupPoint = pickupResult.pickupPoint;
+        }
+
         // Restar un asiento de forma segura
         const remainingSeats = currentSeats - 1;
 
@@ -334,7 +350,7 @@ const joinRoute = (req, res) => {
         }
 
         // US14: registrar la solicitud del pasajero para que el conductor la vea
-        const booking = createBooking({ route, passengerId });
+        const booking = createBooking({ route, passengerId, pickupPoint });
 
         // US14: anunciar la reserva (el observador de notificaciones avisa al conductor)
         tripEvents.publish(TRIP_EVENTS.BOOKING_CREATED, {

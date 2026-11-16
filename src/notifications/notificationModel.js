@@ -9,6 +9,7 @@ const store = createJsonStore('notifications.json');
 const NOTIFICATION_TYPES = {
   ROUTE_MATCH: 'route_match',         // US31: una ruta publicada coincide con tu ruta habitual
   ROUTE_CANCELLED: 'route_cancelled', // US34: el conductor canceló una ruta que reservaste
+  ROUTE_UPDATED: 'route_updated',     // US33: el conductor modifico una ruta que reservaste
   NEW_REQUEST: 'new_request',         // US14: un pasajero reservó en tu ruta
 };
 

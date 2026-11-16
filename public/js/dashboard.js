@@ -495,6 +495,15 @@ function renderPublishedRoutes() {
           Ver solicitudes
           <span class="published-route-requests__count">${Number(route.requestsCount) || 0}</span>
         </button>
+        <!-- US33: editar la ruta publicada -->
+        <button
+          type="button"
+          class="published-route-edit"
+          data-route-id="${route.id}"
+          style="display:inline-flex; align-items:center; border:1px solid rgba(4,41,64,0.16); background:var(--c-white); color:var(--c-midnight-route); font-size:0.75rem; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer;"
+        >
+          Editar
+        </button>
         <button
           type="button"
           class="published-route-cancel"
@@ -511,6 +520,15 @@ function renderPublishedRoutes() {
   button.addEventListener('click', () => {
     const routeId = button.dataset.routeId;
     cancelPublishedRoute(routeId);
+    });
+  });
+
+  // US33: editar una ruta publicada
+  container.querySelectorAll('.published-route-edit').forEach(button => {
+    button.addEventListener('click', () => {
+      if (typeof window.openEditRouteModal === 'function') {
+        window.openEditRouteModal(button.dataset.routeId);
+      }
     });
   });
 
@@ -595,6 +613,18 @@ window.onRouteCancelled = async function onRouteCancelled(routeId) {
     await loadPassengerRoutes();
   }
 };
+/**
+ * US33 - Se llama desde routeEditor.js cuando se guardaron los cambios.
+ * Escenario 01: actualiza la tarjeta del conductor y el buscador de pasajeros.
+ */
+window.onRouteEdited = async function onRouteEdited() {
+  await loadDriverPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
+
 function setDriverOriginLocation(addressName, lat, lng) {
   const originLat = Number(lat);
   const originLng = Number(lng);
@@ -1212,6 +1242,9 @@ function openRouteModal(routeId, origin, destination, time, seats, driverLat, dr
       .bindPopup('Punto de encuentro')
       .openPopup();
 
+    // US21: el pasajero elige su punto de recojo con un clic en el mapa
+    if (window.PickupSelector) PickupSelector.attach(modalMapInstance);
+
     // Forzamos render inicial del mapa.
     modalMapInstance.invalidateSize();
 
@@ -1286,6 +1319,8 @@ function closeRouteModal() {
   }
 
   selectedRouteIdForBooking = null;
+  // US21: limpiar el punto de recojo seleccionado
+  if (window.PickupSelector) PickupSelector.reset();
   // Cancela cualquier intento pendiente de dibujar la ruta del modal
   modalRouteRequestId++;
   // La línea se destruye junto con el mapa, pero limpiamos la referencia
@@ -1323,10 +1358,24 @@ async function confirmFinalBooking(routeId) {
       confirmButton.textContent = 'Confirmando...';
     }
 
+    // US21 - Escenario 03: sin internet no se permite guardar el punto
+    if (!navigator.onLine) {
+      alert('Sin conexi\u00f3n a internet. No se puede guardar el punto de recojo.');
+      return;
+    }
+
+    // US21 - Escenario 01: el pasajero debe elegir un punto antes de confirmar
+    const pickupPoint = window.PickupSelector ? PickupSelector.getSelection() : null;
+
+    if (!pickupPoint) {
+      alert('Selecciona tu punto de recojo en el mapa antes de confirmar.');
+      return;
+    }
+
     const res = await fetch('/trips/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ routeId })
+      body: JSON.stringify({ routeId, pickupPoint })
     });
 
     const data = await res.json().catch(() => ({}));
@@ -1340,6 +1389,9 @@ async function confirmFinalBooking(routeId) {
 
     closeRouteModal();
     await loadPassengerRoutes();
+
+    // US23 - Escenario 05: el nuevo viaje aparece en el historial
+    if (window.TripHistory) TripHistory.refresh();
 
   } catch (err) {
     console.error('[Dashboard] Error al confirmar reserva:', err);
