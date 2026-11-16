@@ -189,17 +189,18 @@
   flex-shrink: 0;
 }
 
-.cancelled-route__reactivate {
+.cancelled-route__republish {
   border: 1px solid var(--c-border);
   background: var(--c-white);
   color: var(--c-midnight-route);
   font-size: 0.74rem;
   font-weight: 700;
   padding: 5px 10px;
+  white-space: nowrap;
   border-radius: 999px;
   cursor: pointer;
 }
 
-.cancelled-route__reactivate:hover:not(:disabled) {
+.cancelled-route__republish:hover:not(:disabled) {
   border-color: var(--c-midnight-route);
 }

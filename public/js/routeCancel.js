@@ -6,7 +6,8 @@
 //   02 Cancelación con reservas    → se avisa cuántos pasajeros serán liberados y notificados
 //   03 Confirmación de seguridad   → modal que exige escribir "CANCELAR"
 //   04 Cancelación tardía          → aviso si faltan menos de 15 min y hay pasajeros (strike)
-//   05 Intento de reactivación     → historial de canceladas con botón "Reactivar" bloqueado
+//   05 Intento de reactivación     → la ruta cancelada no se reabre; el botón "Publicar de nuevo"
+//                                    muestra el aviso y llena el formulario para publicar una ruta nueva
 //
 // La ventana reutiliza el diseño del modal de solicitudes (driverRequests.css).
 
@@ -16,6 +17,7 @@
   const MAX_REASON_LENGTH = 200;
 
   let routeToCancel = null;
+  let cancelledRoutes = [];
   let isSubmitting = false;
 
   function escapeText(value) {
@@ -233,8 +235,8 @@
     published.insertAdjacentElement('afterend', container);
 
     container.addEventListener('click', async (event) => {
-      const button = event.target.closest('.cancelled-route__reactivate');
-      if (button) await tryReactivate(button);
+      const button = event.target.closest('.cancelled-route__republish');
+      if (button) await republishRoute(button);
     });
 
     return container;
@@ -256,9 +258,12 @@
       const routes = await res.json().catch(() => []);
 
       if (!res.ok || !Array.isArray(routes) || routes.length === 0) {
+        cancelledRoutes = [];
         container.innerHTML = '';
         return;
       }
+
+      cancelledRoutes = routes;
 
       // Se muestra plegado para no ocupar espacio en la vista del conductor
       const wasOpen = container.querySelector('details')?.open ?? false;
@@ -281,8 +286,8 @@
                 </div>
                 <div class="cancelled-route__actions">
                   <span class="request-status request-status--cancelada">Cancelada</span>
-                  <button type="button" class="cancelled-route__reactivate" data-route-id="${escapeText(route.id)}">
-                    Reactivar
+                  <button type="button" class="cancelled-route__republish" data-route-id="${escapeText(route.id)}">
+                    Publicar de nuevo
                   </button>
                 </div>
               </li>
@@ -295,24 +300,62 @@
     }
   }
 
-  // Escenario 05: el servidor siempre rechaza reabrir un viaje cancelado
-  async function tryReactivate(button) {
+  // Escenario 05: un viaje cancelado no se puede reabrir (el servidor siempre lo rechaza).
+  // En lugar de un botón que solo falla, "Publicar de nuevo" muestra ese aviso y
+  // llena el formulario de "Publicar ruta" con los mismos datos para crear una ruta NUEVA.
+  async function republishRoute(button) {
     const item = button.closest('.cancelled-route');
     const messageEl = item.querySelector('.cancelled-route__message');
+    const route = cancelledRoutes.find(r => String(r.id) === button.dataset.routeId);
 
     button.disabled = true;
 
+    let serverMessage = 'Los viajes cancelados no pueden reabrirse. Por favor, publica una nueva ruta.';
     try {
       const res = await fetch(`/trips/${encodeURIComponent(button.dataset.routeId)}/reactivate`, { method: 'POST' });
       const data = await res.json().catch(() => ({}));
-
-      messageEl.textContent = data.error || data.message || 'No se pudo procesar la solicitud.';
+      serverMessage = data.error || data.message || serverMessage;
     } catch (error) {
-      messageEl.textContent = 'No se pudo conectar con el servidor.';
-    } finally {
-      messageEl.hidden = false;
-      button.disabled = false;
+      // Sin conexión igual se puede preparar el formulario; se publica cuando vuelva la conexión
     }
+
+    const filled = route ? fillPublishForm(route) : false;
+
+    messageEl.textContent = filled
+      ? `${serverMessage} Ya llenamos el formulario con esta ruta: elige la nueva hora de salida y publícala.`
+      : serverMessage;
+    messageEl.hidden = false;
+    button.disabled = false;
+  }
+
+  function fillPublishForm(route) {
+    const origin = Array.isArray(route.originCoords) ? route.originCoords : [];
+    const dest = Array.isArray(route.destCoords) ? route.destCoords : [];
+
+    const originOk = typeof window.setDriverOriginLocation === 'function'
+      && window.setDriverOriginLocation(route.origin, origin[0], origin[1]);
+    const destOk = typeof window.setDriverDestinationLocation === 'function'
+      && window.setDriverDestinationLocation(route.dest, dest[0], dest[1]);
+
+    if (!originOk || !destOk) return false;
+
+    const seats = document.getElementById('d-seats');
+    if (seats && [...seats.options].some(o => o.value === String(route.seats))) {
+      seats.value = String(route.seats);
+    }
+
+    const notes = document.getElementById('d-notes');
+    if (notes) notes.value = route.notes || '';
+
+    // La hora se deja vacía a propósito: es un viaje nuevo
+    const time = document.getElementById('d-time');
+    if (time) {
+      time.value = '';
+      time.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => time.focus({ preventScroll: true }), 400);
+    }
+
+    return true;
   }
 
   window.openCancelRouteModal = openCancelRouteModal;
