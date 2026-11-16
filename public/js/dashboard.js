@@ -495,6 +495,15 @@ function renderPublishedRoutes() {
           Ver solicitudes
           <span class="published-route-requests__count">${Number(route.requestsCount) || 0}</span>
         </button>
+        <!-- US33: editar la ruta publicada -->
+        <button
+          type="button"
+          class="published-route-edit"
+          data-route-id="${route.id}"
+          style="display:inline-flex; align-items:center; border:1px solid rgba(4,41,64,0.16); background:var(--c-white); color:var(--c-midnight-route); font-size:0.75rem; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer;"
+        >
+          Editar
+        </button>
         <button
           type="button"
           class="published-route-cancel"
@@ -511,6 +520,15 @@ function renderPublishedRoutes() {
   button.addEventListener('click', () => {
     const routeId = button.dataset.routeId;
     cancelPublishedRoute(routeId);
+    });
+  });
+
+  // US33: editar una ruta publicada
+  container.querySelectorAll('.published-route-edit').forEach(button => {
+    button.addEventListener('click', () => {
+      if (typeof window.openEditRouteModal === 'function') {
+        window.openEditRouteModal(button.dataset.routeId);
+      }
     });
   });
 
@@ -595,6 +613,18 @@ window.onRouteCancelled = async function onRouteCancelled(routeId) {
     await loadPassengerRoutes();
   }
 };
+/**
+ * US33 - Se llama desde routeEditor.js cuando se guardaron los cambios.
+ * Escenario 01: actualiza la tarjeta del conductor y el buscador de pasajeros.
+ */
+window.onRouteEdited = async function onRouteEdited() {
+  await loadDriverPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
+
 function setDriverOriginLocation(addressName, lat, lng) {
   const originLat = Number(lat);
   const originLng = Number(lng);
