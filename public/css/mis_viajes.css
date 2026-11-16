@@ -223,8 +223,21 @@
 }
 .mv-empty strong { display: block; color: var(--c-midnight-route); margin-bottom: 4px; }
 
-.mv-search { display: flex; gap: var(--space-xs); }
-.mv-search .form-input { min-width: 240px; }
+/* ── Búsqueda de reclamos (5 campos) ── */
+.mv-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  align-items: end;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+}
+.mv-filters .form-group { margin: 0; }
+.mv-filters__actions { display: flex; gap: var(--space-xs); }
+#error-reclamos { margin-bottom: var(--space-md); }
 
 /* ── Modal ── */
 .mv-modal {
@@ -257,6 +270,11 @@
   position: sticky;
   top: 0;
 }
+.mv-modal__header h3 {
+  color: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
 .mv-modal__close { background: none; border: none; color: var(--c-white); font-size: 1.6rem; cursor: pointer; line-height: 1; }
 .mv-modal__body { padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
 
@@ -280,7 +298,5 @@
 @media (max-width: 640px) {
   .mv { padding: var(--space-lg) var(--space-md) var(--space-2xl); }
   .mv-tab { flex: 0 0 auto; }
-  .mv-search { width: 100%; }
-  .mv-search .form-input { min-width: 0; flex: 1; }
   .mv-channels { grid-template-columns: 1fr; }
 }

@@ -86,11 +86,39 @@
     <section class="mv-panel" id="panel-reclamos" role="tabpanel" hidden>
       <div class="mv-panel__head">
         <h2>Mis reclamos</h2>
-        <form class="mv-search" id="form-buscar-reclamo">
-          <input class="form-input" id="codigo-reclamo" placeholder="Código, ej. REC-2026-000001" autocomplete="off" />
-          <button class="btn btn--primary btn--sm" type="submit">Consultar</button>
-        </form>
       </div>
+      <!-- Búsqueda con 5 campos: código, estado, categoría, fecha desde y fecha hasta -->
+      <form class="mv-filters" id="form-buscar-reclamo" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="f-codigo">Código</label>
+          <input class="form-input" id="f-codigo" name="codigo" placeholder="REC-2026-000001" autocomplete="off" maxlength="15" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-estado">Estado</label>
+          <select class="form-input form-select" id="f-estado" name="estado">
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-categoria">Categoría</label>
+          <select class="form-input form-select" id="f-categoria" name="categoria">
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-desde">Desde</label>
+          <input class="form-input" type="date" id="f-desde" name="desde" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-hasta">Hasta</label>
+          <input class="form-input" type="date" id="f-hasta" name="hasta" />
+        </div>
+        <div class="mv-filters__actions">
+          <button class="btn btn--primary btn--sm" type="submit">Buscar</button>
+          <button class="btn btn--ghost btn--sm" type="button" id="btn-limpiar-reclamos">Limpiar</button>
+        </div>
+      </form>
+      <div class="form-message form-message--error" id="error-reclamos" style="display:none;"></div>
       <div class="mv-summary" id="resumen-reclamos"></div>
       <div class="mv-list" id="lista-reclamos"></div>
     </section>

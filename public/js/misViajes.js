@@ -354,18 +354,43 @@
     return `<div class="mv-sla ${t.vencido ? 'mv-sla--late' : ''}">${esc(texto)}<div class="mv-sla__bar"><div class="mv-sla__fill" style="width:${Number(t.avance) || 0}%"></div></div></div>`;
   }
 
+  /** Lee los 5 campos del formulario de búsqueda (todos opcionales). */
+  function criteriosReclamos() {
+    const params = new URLSearchParams();
+    ['codigo', 'estado', 'categoria', 'desde', 'hasta'].forEach(campo => {
+      const valor = $(`f-${campo}`).value.trim();
+      if (valor) params.set(campo, valor);
+    });
+    return params;
+  }
+
+  function llenarSelect(id, opciones, valorClave, primera) {
+    const select = $(id);
+    if (select.options.length > 1) return; // ya está cargado
+    select.innerHTML = `<option value="${primera.valor}">${esc(primera.etiqueta)}</option>`
+      + opciones.map(o => `<option value="${esc(o[valorClave])}">${esc(o.etiqueta)}</option>`).join('');
+  }
+
   async function cargarReclamos() {
     const lista = $('lista-reclamos');
+    const error = $('error-reclamos');
+    error.style.display = 'none';
     try {
-      const data = await api('/claims');
+      const params = criteriosReclamos();
+      const data = await api(`/claims${params.toString() ? `?${params}` : ''}`);
       setCount('count-reclamos', data.abiertos);
+      llenarSelect('f-estado', data.estados, 'codigo', { valor: 'todos', etiqueta: 'Todos' });
+      llenarSelect('f-categoria', data.categorias, 'clave', { valor: 'todas', etiqueta: 'Todas' });
       $('resumen-reclamos').innerHTML = `
         <div class="mv-summary__item"><strong>${data.total}</strong>reclamos</div>
         <div class="mv-summary__item"><strong>${data.abiertos}</strong>en atención</div>
-        <div class="mv-summary__item"><strong>${data.cerrados}</strong>finalizados</div>`;
+        <div class="mv-summary__item"><strong>${data.cerrados}</strong>finalizados</div>
+        ${params.toString() ? `<div class="mv-summary__item"><strong>${data.encontrados}</strong>coinciden con la búsqueda</div>` : ''}`;
 
       if (!data.reclamos.length) {
-        lista.innerHTML = vacio('No tienes reclamos registrados', 'Si registras un reclamo, aquí podrás seguir su estado.');
+        lista.innerHTML = data.total
+          ? vacio('Ningún reclamo coincide con la búsqueda', 'Prueba con otros criterios o pulsa "Limpiar".')
+          : vacio('No tienes reclamos registrados', 'Si registras un reclamo, aquí podrás seguir su estado.');
         return;
       }
 
@@ -384,8 +409,12 @@
             <button class="btn btn--ghost btn--sm" data-action="detalle-reclamo" data-id="${esc(r.codigo)}">Ver seguimiento</button>
           </div>
         </article>`).join('');
-    } catch (error) {
-      lista.innerHTML = vacio('No pudimos cargar tus reclamos', error.message);
+    } catch (e) {
+      // Un criterio inválido se muestra junto al formulario; la lista queda vacía.
+      error.textContent = e.message;
+      error.style.display = 'block';
+      $('resumen-reclamos').innerHTML = '';
+      lista.innerHTML = '';
     }
   }
 
@@ -456,9 +485,12 @@
 
   $('form-buscar-reclamo').addEventListener('submit', e => {
     e.preventDefault();
-    const codigo = $('codigo-reclamo').value.trim();
-    if (!codigo) return toast('Ingresa el código de tu reclamo.', true);
-    detalleReclamo(codigo);
+    cargarReclamos();
+  });
+
+  $('btn-limpiar-reclamos').addEventListener('click', () => {
+    $('form-buscar-reclamo').reset();
+    cargarReclamos();
   });
 
   $('mv-demo-btn').addEventListener('click', async () => {

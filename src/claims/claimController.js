@@ -7,9 +7,10 @@ const { handle } = require('../shared/httpHelpers');
 
 const facade = new ReclamoFacade();
 
-// GET /claims?estado=registrado|en_revision|en_proceso|resuelto|rechazado|cerrado|todos
+// GET /claims?codigo=&estado=&categoria=&desde=AAAA-MM-DD&hasta=AAAA-MM-DD  (todos opcionales)
 const listarMisReclamos = handle((req, res) => {
-  const data = facade.consultarMisReclamos(req.session.userId, { estado: req.query.estado });
+  const { codigo, estado, categoria, desde, hasta } = req.query;
+  const data = facade.consultarMisReclamos(req.session.userId, { codigo, estado, categoria, desde, hasta });
   res.status(200).json({ success: true, ...data });
 }, 'ClaimController.listar');
 
