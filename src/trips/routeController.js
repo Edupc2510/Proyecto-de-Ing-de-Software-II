@@ -479,6 +479,8 @@ const getRouteRequests = (req, res) => {
                     id: booking.id,
                     passengerName: getFullName(passenger) || 'Pasajero',
                     passengerEmail: passenger?.email || null,
+                    // US21 (Camila): punto de recojo elegido por el pasajero, si lo indicó
+                    pickupAddress: booking.pickupPoint?.address || null,
                     status: booking.status,
                     requestedAt: booking.createdAt,
                     cancelledAt: booking.cancelledAt || null
