@@ -112,6 +112,11 @@
             </div>
           </div>
 
+          <!-- US23: historial de viajes del pasajero -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-sm);">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="TripHistory.open()">&#128338; Mis viajes</button>
+          </div>
+
           <div id="dynamic-passenger-routes"></div>
           <div id="passenger-routes-anchor"></div>
         </div>
@@ -278,6 +283,7 @@
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="/js/addressSearch.js"></script>
   <script src="/js/pickupSelector.js"></script>
+  <script src="/js/tripHistory.js"></script>
   <script src="/js/dashboard.js"></script>
 
   <div id="route-detail-modal" class="modal-overlay" style="display: none;">
