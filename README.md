@@ -71,6 +71,15 @@ npm start
 
 Abre en tu navegador: **http://localhost:3000**
 
+### 5. Ejecuta las pruebas
+
+Las pruebas unitarias usan el runner incluido en Node.js (`node:test`), no requieren dependencias extra y no modifican los datos de `/data`.
+
+```bash
+npm test                # ejecuta todas las pruebas de la carpeta tests/
+npm run test:coverage   # además muestra el porcentaje de cobertura por archivo
+```
+
 ---
 
 ## 🔐 Configurar Gmail App Password
