@@ -17,7 +17,7 @@ archivo propio los datos que no existen en Main: reclamos (`claims.json`), histo
 | **US17** Visualizar reservas realizadas | Reservas próximas, historial, canceladas o todas, con contadores. | `src/reservations/` | `GET /reservations?filtro=` · `GET /reservations/:id` | Strategy, Iterator, Adapter |
 | **US35** Confirmar participación en el viaje | El pasajero confirma que asistirá o avisa que no irá, y puede deshacer su decisión antes de la salida. Se resaltan los viajes que salen en menos de 24 h. | `src/reservations/` | `POST /reservations/:id/participation/confirm` · `/decline` · `/undo` | Command, DAO |
 | **US30** Contactar conductores frecuentes | Muestra los conductores con 2 o más viajes completados y permite contactarlos por WhatsApp, llamada, correo o mensaje interno. Guarda un historial de contactos. | `src/drivers/` | `GET /frequent-drivers` · `POST /frequent-drivers/:id/contact` · `GET /frequent-drivers/:id/contacts` | Strategy, Factory Method, DAO |
-| **US37** Consultar estado del reclamo | Lista de reclamos con plazo de respuesta (SLA). El detalle se busca por código (`REC-AAAA-NNNNNN`) y muestra línea de tiempo, respuesta de soporte y viaje asociado. | `src/claims/` | `GET /claims?estado=` · `GET /claims/:codigo` | Facade, Decorator, Singleton, DAO |
+| **US37** Consultar estado del reclamo | Búsqueda con 5 campos (código, estado, categoría, desde, hasta) y plazo de respuesta (SLA). El detalle muestra línea de tiempo, respuesta de soporte y viaje asociado. | `src/claims/` | `GET /claims?codigo=&estado=&categoria=&desde=&hasta=` · `GET /claims/:codigo` | Facade, Decorator, Singleton, DAO |
 
 **Vista:** `GET /mis-viajes`. Se entra con el botón **"Mis viajes"** del navbar del dashboard
 (`views/mis_viajes.html`, `public/js/misViajes.js`, `public/css/mis_viajes.css`).
@@ -60,9 +60,16 @@ Diagrama de clases: `diagramas/patrones_us15_us17_us30_us35_us37.puml`.
 ## Pruebas
 
 ```bash
-node --test
+node --test                                  # todas las pruebas
+node --test --experimental-test-coverage     # con reporte de cobertura
 ```
 
-Hay 11 pruebas unitarias en `tests/`, una o más por patrón y HU. Usan una carpeta de datos temporal
-(`MOVESHARE_DATA_DIR`) y un `bookingModel` en memoria (`tests/helpers/fakeBookingModel.js`), así que
-no modifican `/data`.
+Las pruebas usan una carpeta de datos temporal (`MOVESHARE_DATA_DIR`) y un `bookingModel` en memoria
+(`tests/helpers/fakeBookingModel.js`), así que no modifican `/data`.
+
+| Tipo (rúbrica) | Archivo | Objeto de prueba | Casos |
+|---|---|---|---|
+| **Caja blanca** | `tests/cajaBlanca.contactarConductor.test.js` | `ConductorFrecuenteService.contactar()` (US30), complejidad ciclomática **V(G) = 7** | 7 caminos básicos (CB-01 a CB-07) |
+| **Caja negra** | `tests/cajaNegra.busquedaReclamos.test.js` | Búsqueda de reclamos con **5 campos**: código, estado, categoría, desde, hasta (US37) | 16 casos por clases de equivalencia y valores límite (CN-01 a CN-16) |
+| **Unitaria** | `tests/unitaria.confirmarParticipacion.test.js` | `ReservaService.confirmarParticipacion()` (US35) | 6 casos (UT-01 a UT-06) |
+| Patrones / HU | `requests`, `reservations`, `frequentDrivers`, `claims` `.test.js` | Factory Method, Singleton, Adapter, Iterator, Strategy, Command, Facade, Decorator | 11 casos |
