@@ -7,8 +7,10 @@
 // archivos directamente: solo llaman a guardar(), buscarPorId(), listar(),
 // actualizar() o eliminar().
 //
-// Cada entidad tiene su DAO concreto (SolicitudDAO, ReservaDAO, ReclamoDAO...)
-// que hereda de esta clase y agrega consultas propias de su dominio.
+// Cada entidad propia tiene su DAO concreto (ReclamoDAO, ContactoConductorDAO,
+// HistorialParticipacionDAO) que hereda de esta clase y agrega consultas
+// propias de su dominio. Las reservas y solicitudes NO tienen DAO propio:
+// usan el bookingModel de la US14 a través de adapters, para no duplicar modelos.
 // Si mañana se migra a PostgreSQL/MySQL, solo cambian los DAO concretos.
 // ─────────────────────────────────────────────────────────────
 
@@ -16,7 +18,7 @@ const { JsonDataSource } = require('./JsonDataSource');
 
 class JsonDAO {
   /**
-   * @param {string} nombreArchivo - Archivo dentro de /data (ej: 'trip_requests.json')
+   * @param {string} nombreArchivo - Archivo dentro de /data (ej: 'claims.json')
    */
   constructor(nombreArchivo) {
     if (new.target === JsonDAO) {
