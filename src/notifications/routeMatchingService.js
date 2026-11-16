@@ -9,75 +9,29 @@ const { AccountFacade } = require('../account/accountFacade');
 const cuentas = AccountFacade.crearPorDefecto();
 const puedeNotificar = (userId) => cuentas.puedeNotificar(userId, 'coincidenciaRuta');
 
-// Distancia máxima (km) entre origen/destino de la alerta y de la ruta para considerarla coincidente
-const MATCH_RADIUS_KM = 2;
+// Patrón Strategy: cada regla de coincidencia es un criterio (ver matchCriteria.js)
+const {
+  MATCH_RADIUS_KM,
+  distanceKm,
+  isTimeInRange,
+  CriterioPreferenciaCuenta,
+  crearCriteriosBase,
+} = require('./matchCriteria');
+
+// Criterios puros de la US31 (sin leer datos): los usan las pruebas y routeMatchesAlert
+const CRITERIOS_BASE = crearCriteriosBase();
+// Criterios que usa la app al notificar: los de la US31 + la preferencia de cuenta de la US32
+const CRITERIOS_NOTIFICACION = [...CRITERIOS_BASE, new CriterioPreferenciaCuenta(puedeNotificar)];
 
 /**
- * Distancia en km entre dos coordenadas [lat, lng] usando la fórmula de Haversine.
+ * Determina si una ruta coincide con una alerta: deben cumplirse todos los criterios.
+ * @param {Object} route
+ * @param {Object} alert
+ * @param {Array<{cumple: Function}>} [criterios] - estrategias a aplicar
  */
-function distanceKm(a, b) {
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const R = 6371;
-
-  const dLat = toRad(b[0] - a[0]);
-  const dLng = toRad(b[1] - a[1]);
-
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
-
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-const toMinutes = (hhmm) => {
-  const [h, m] = String(hhmm).split(':').map(Number);
-  return h * 60 + m;
-};
-
-/**
- * Indica si la hora de la ruta cae dentro del rango de la alerta.
- * Si la alerta no tiene rango horario, cualquier hora coincide.
- */
-function isTimeInRange(routeTime, timeFrom, timeTo) {
-  if (!timeFrom || !timeTo) return true;
-
-  const t = toMinutes(routeTime);
-  const from = toMinutes(timeFrom);
-  const to = toMinutes(timeTo);
-
-  // Rango normal (07:00 - 09:00) o rango que cruza medianoche (22:00 - 01:00)
-  return from <= to ? t >= from && t <= to : t >= from || t <= to;
-}
-
-const hasValidCoords = (coords) =>
-  Array.isArray(coords) &&
-  coords.length === 2 &&
-  Number.isFinite(Number(coords[0])) &&
-  Number.isFinite(Number(coords[1]));
-
-/**
- * Determina si una ruta coincide con una alerta.
- */
-function routeMatchesAlert(route, alert) {
+function routeMatchesAlert(route, alert, criterios = CRITERIOS_BASE) {
   if (!route || !alert) return false;
-
-  // Escenario 05: el pasajero desmarcó "Recibir alertas"
-  if (alert.active === false) return false;
-
-  // El conductor no debe recibir alertas por su propia ruta
-  if (route.driverId && String(route.driverId) === String(alert.userId)) return false;
-
-  if (!hasValidCoords(route.originCoords) || !hasValidCoords(route.destCoords)) return false;
-  if (!hasValidCoords(alert.originCoords) || !hasValidCoords(alert.destCoords)) return false;
-
-  const originDistance = distanceKm(route.originCoords.map(Number), alert.originCoords.map(Number));
-  const destDistance = distanceKm(route.destCoords.map(Number), alert.destCoords.map(Number));
-
-  return (
-    originDistance <= MATCH_RADIUS_KM &&
-    destDistance <= MATCH_RADIUS_KM &&
-    isTimeInRange(route.time, alert.timeFrom, alert.timeTo)
-  );
+  return criterios.every(criterio => criterio.cumple(route, alert));
 }
 
 // El texto del aviso lo arma la fábrica de notificaciones (patrón Factory)
@@ -103,8 +57,7 @@ function notifyMatchingAlertsForRoute(route) {
 
     alerts.forEach(alert => {
       if (notifiedUsers.has(alert.userId)) return;
-      if (!puedeNotificar(alert.userId)) return; // US32
-      if (routeMatchesAlert(route, alert)) {
+      if (routeMatchesAlert(route, alert, CRITERIOS_NOTIFICACION)) {
         notifiedUsers.add(alert.userId);
         toCreate.push(buildMatchNotification(route, alert));
       }
@@ -126,9 +79,7 @@ function notifyMatchingAlertsForRoute(route) {
  */
 function notifyExistingRoutesForAlert(alert, activeRoutes) {
   try {
-    const matches = puedeNotificar(alert.userId) // US32
-      ? (activeRoutes || []).filter(route => routeMatchesAlert(route, alert))
-      : [];
+    const matches = (activeRoutes || []).filter(route => routeMatchesAlert(route, alert, CRITERIOS_NOTIFICACION));
     addRouteMatchNotifications(matches.map(route => buildMatchNotification(route, alert)));
     return matches;
   } catch (error) {
