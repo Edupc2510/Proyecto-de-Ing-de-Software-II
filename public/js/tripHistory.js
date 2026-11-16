@@ -55,6 +55,10 @@ const TripHistory = (() => {
       if (event.target === modal || action === 'close') close();
       if (action === 'filter') refresh();
       if (action === 'retry') refresh();
+      // US29: guardar o quitar el conductor de favoritos
+      if (action === 'favorite' && window.FavoriteDrivers) {
+        FavoriteDrivers.toggle(event.target.dataset.driverId, event.target);
+      }
       if (action === 'clear') {
         document.getElementById('trip-history-from').value = '';
         document.getElementById('trip-history-to').value = '';
@@ -86,6 +90,13 @@ const TripHistory = (() => {
         ? `<p style="margin: 2px 0;">&#128587; Recojo: ${escapeText(trip.pickupPoint.address)}</p>`
         : '';
 
+      // US29 - Escenarios 01 y 04: guardar al conductor de un viaje terminado
+      const canSave = trip.status === 'realizado' && trip.driverId && window.FavoriteDrivers;
+      const saved = canSave && FavoriteDrivers.isSaved(trip.driverId);
+      const favoriteButton = canSave
+        ? `<button type="button" class="btn btn--ghost btn--sm" style="margin-top: var(--space-xs);" data-action="favorite" data-driver-id="${escapeText(trip.driverId)}">${saved ? '\u2605 Favorito' : '\u2606 Guardar en Favoritos'}</button>`
+        : '';
+
       return `
         <div style="border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; padding: var(--space-sm); margin-bottom: var(--space-xs);">
           <div style="display: flex; justify-content: space-between; gap: var(--space-xs);">
@@ -95,6 +106,7 @@ const TripHistory = (() => {
           <p style="margin: 2px 0;">&#128205; ${escapeText(trip.origin)}</p>
           <p style="margin: 2px 0;">&#127937; ${escapeText(trip.dest)}</p>
           ${pickup}
+          ${favoriteButton}
         </div>`;
     });
 
@@ -139,6 +151,9 @@ const TripHistory = (() => {
           : 'A\u00fan no tienes viajes. Cuando reserves uno, aparecer\u00e1 aqu\u00ed.');
         return;
       }
+
+      // US29: saber que conductores ya estan guardados
+      if (window.FavoriteDrivers) await FavoriteDrivers.loadIds();
 
       renderTrips(trips);
     } catch (error) {
