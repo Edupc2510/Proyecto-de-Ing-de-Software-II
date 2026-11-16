@@ -56,6 +56,18 @@ const creators = {
       ' Busca otra ruta disponible.',
     routeId: route.id,
   }),
+
+  // US33: el conductor modifico una ruta que el pasajero habia reservado (urgente)
+  [NOTIFICATION_TYPES.ROUTE_UPDATED]: ({ route, booking, changedLabels = [] }) => ({
+    userId: booking.passengerId,
+    type: NOTIFICATION_TYPES.ROUTE_UPDATED,
+    priority: PRIORITY.HIGH,
+    title: 'Cambio en tu viaje',
+    message: `El conductor modific\u00f3 tu viaje ${routeLabel(route)}` +
+      (changedLabels.length ? ` (${changedLabels.join(', ')})` : '') +
+      `. Salida: ${route.time}. Revisa los detalles antes de salir.`,
+    routeId: route.id,
+  }),
 };
 
 const NotificationFactory = {
