@@ -1,0 +1,173 @@
+/* ============================================================
+   driverRating.css — US24 Calificar conductor después del viaje
+   Sección "Califica tus viajes" (vista pasajero) y ventana de
+   calificación. La ventana usa la estructura de driverRequests.css
+   y los campos/botones de routeCancel.css (.cancel-field, .cancel-actions).
+   ============================================================ */
+
+/* ── Sección "Califica tus viajes" ── */
+.rate-trips {
+  margin: var(--space-md) var(--space-xl) var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--c-white);
+  border: 1px solid var(--c-border);
+  border-radius: 24px;
+  box-shadow: 0 12px 28px rgba(4, 41, 64, 0.07);
+}
+
+.rate-trips__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: var(--space-sm);
+}
+
+.rate-trips__header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--c-midnight-route);
+}
+
+.rate-trips__pending {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--c-share-pulse);
+  color: var(--c-midnight-route);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.rate-trips__empty {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--c-urban-mist);
+}
+
+.rate-trips__empty--error {
+  color: var(--c-error);
+}
+
+.rate-trips__retry {
+  margin-left: 6px;
+  border: none;
+  background: none;
+  color: var(--c-midnight-route);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rate-trips__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rate-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+}
+
+.rate-trip--por_calificar {
+  border-color: rgba(169, 191, 4, 0.55);
+  background: rgba(219, 242, 39, 0.1);
+}
+
+.rate-trip__info {
+  min-width: 0;
+}
+
+.rate-trip__route {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--c-midnight-route);
+}
+
+.rate-trip__meta {
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: var(--c-urban-mist);
+}
+
+.rate-trip__comment {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--c-urban-mist);
+  overflow-wrap: anywhere;
+}
+
+.rate-trip__action {
+  flex-shrink: 0;
+}
+
+.rate-trip__stars {
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  color: #f59e0b;
+}
+
+/* ── Ventana de calificación ── */
+.rating-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px;
+}
+
+.rating-modal__question {
+  margin: 0;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--c-midnight-route);
+}
+
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.rating-star {
+  border: none;
+  background: none;
+  padding: 2px;
+  font-size: 2.3rem;
+  line-height: 1;
+  color: var(--c-light-route);
+  cursor: pointer;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.rating-star:hover {
+  transform: scale(1.12);
+}
+
+.rating-star--active {
+  color: #f59e0b;
+}
+
+.rating-score-label {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-urban-mist);
+}
+
+.rating-comment-count {
+  align-self: flex-end;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--c-text-soft);
+}
