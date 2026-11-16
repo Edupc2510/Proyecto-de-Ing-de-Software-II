@@ -14,15 +14,10 @@ const {
     getBookingsByRoute,
     cancelBookingsByRoute
 } = require('./bookingModel');
-const { LATE_CANCELLATION_MINUTES, addStrike } = require('./driverReliabilityModel');
 const { findUserById } = require('../auth/userModel');
-const {
-    createNotification,
-    createNotifications,
-    NOTIFICATION_TYPES,
-    PRIORITY
-} = require('../notifications/notificationModel');
-const { notifyMatchingAlertsForRoute } = require('../notifications/routeMatchingService');
+// Patrón Observer: el controlador solo anuncia lo que pasó; las notificaciones (US14, US31, US34)
+// y los strikes (US34) los manejan los observadores registrados en src/shared/events.
+const { tripEvents, TRIP_EVENTS } = require('../shared/events/tripEvents');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
 
 // Palabra que el conductor debe escribir para confirmar la cancelación (US34 - Escenario 03)
@@ -31,7 +26,6 @@ const CANCEL_CONFIRMATION_WORD = 'CANCELAR';
 const getFullName = (user) =>
     user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
 
-const shortPlace = (text) => String(text || '').split(',')[0].trim();
 
 /**
  * Elimina del JSON solo las rutas vencidas que no están canceladas.
@@ -216,13 +210,12 @@ const publishRoute = (req, res) => {
             throw new Error("No se pudo guardar la ruta en el archivo JSON.");
         }
 
-        // US31: avisar a los pasajeros cuya ruta habitual coincide con la nueva ruta
-        const matchedPassengers = notifyMatchingAlertsForRoute(newRoute);
+        // US31: anunciar la nueva ruta (el observador de notificaciones busca coincidencias)
+        tripEvents.publish(TRIP_EVENTS.ROUTE_PUBLISHED, { route: newRoute });
 
         return res.status(201).json({
             message: "Ruta publicada correctamente",
-            route: newRoute,
-            matchedPassengers
+            route: newRoute
         });
 
     } catch (error) {
@@ -331,16 +324,12 @@ const joinRoute = (req, res) => {
         // US14: registrar la solicitud del pasajero para que el conductor la vea
         const booking = createBooking({ route, passengerId });
 
-        if (route.driverId) {
-            const passenger = findUserById(passengerId);
-            createNotification({
-                userId: route.driverId,
-                type: NOTIFICATION_TYPES.NEW_REQUEST,
-                title: 'Nueva solicitud de viaje',
-                message: `${getFullName(passenger) || 'Un pasajero'} reservó un asiento en tu ruta ${shortPlace(route.origin)} → ${shortPlace(route.dest)} (${route.time}).`,
-                routeId: route.id
-            });
-        }
+        // US14: anunciar la reserva (el observador de notificaciones avisa al conductor)
+        tripEvents.publish(TRIP_EVENTS.BOOKING_CREATED, {
+            route,
+            booking,
+            passengerName: getFullName(findUserById(passengerId))
+        });
 
         return res.status(200).json({
             message: "¡Te has unido a la ruta con éxito!",
@@ -596,32 +585,15 @@ const cancelPublishedRoute = (req, res) => {
         // Escenario 02: liberar a los pasajeros y avisarles con prioridad alta
         const cancelledBookings = cancelBookingsByRoute(route.id, reason);
 
-        createNotifications(cancelledBookings.map(booking => ({
-            userId: booking.passengerId,
-            type: NOTIFICATION_TYPES.ROUTE_CANCELLED,
-            priority: PRIORITY.HIGH,
-            title: 'Tu viaje fue cancelado',
-            message: `El conductor canceló el viaje ${shortPlace(route.origin)} → ${shortPlace(route.dest)} de las ${route.time}.` +
-                (reason ? ` Motivo: ${reason}` : '') +
-                ' Busca otra ruta disponible.',
-            routeId: route.id
-        })));
-
-        // Escenario 04: penalización por cancelación tardía
-        const minutesBeforeDeparture = Math.floor((Number(route.expiresAtTimestamp) - now) / 60000);
-        const isLateCancellation =
-            cancelledBookings.length > 0 &&
-            minutesBeforeDeparture < LATE_CANCELLATION_MINUTES;
-
-        if (isLateCancellation) {
-            addStrike({
-                driverId: currentUserId,
-                routeId: route.id,
-                affectedPassengers: cancelledBookings.length,
-                minutesBeforeDeparture,
-                reason
-            });
-        }
+        // Escenarios 02 y 04: anunciar la cancelación. Los observadores avisan a los
+        // pasajeros (prioridad alta) y registran el strike si fue tardía.
+        tripEvents.publish(TRIP_EVENTS.ROUTE_CANCELLED, {
+            route,
+            driverId: currentUserId,
+            cancelledBookings,
+            reason,
+            cancelledAt: now
+        });
 
         return res.status(200).json({
             message: cancelledBookings.length > 0
