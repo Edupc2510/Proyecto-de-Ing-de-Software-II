@@ -248,6 +248,7 @@ async function login(req, res) {
     req.session.userId = user.id;
     req.session.userEmail = user.email;
     req.session.userName = user.firstName;
+    req.session.passwordVersion = user.passwordVersion || 0;
 
     return res.status(200).json({
       success: true,
@@ -282,7 +283,7 @@ function logout(req, res) {
 // Retorna datos del usuario de la sesión actual
 // ─────────────────────────────────────────────────────────────
 function getMe(req, res) {
-  if (!req.session.userId) {
+  if (!req.session?.userId) {
     return res.status(401).json({ success: false, message: 'No autenticado.' });
   }
   return res.status(200).json({

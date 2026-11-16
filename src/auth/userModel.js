@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 //const usersFilePath = path.join(__dirname, '../../data/users.json');
-const DATA_PATH = path.join(__dirname, '../../data/users.json');
+const DATA_PATH = path.join(process.env.MOVESHARE_DATA_DIR || path.join(__dirname, '../../data'), 'users.json');
 /**
  * Lee todos los usuarios desde el archivo JSON.
  * Si el archivo no existe o está vacío, retorna un array vacío.
@@ -83,7 +83,7 @@ function updateUser(id, updates) {
   const index = users.findIndex(u => u.id === id);
   if (index === -1) return null;
   users[index] = { ...users[index], ...updates };
-  writeUsers(users);
+  if (!writeUsers(users)) throw new Error('No se pudieron guardar los cambios del usuario.');
   return users[index];
 }
 

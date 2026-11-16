@@ -1,0 +1,28 @@
+.trip-filters { background: white; border: 1px solid #dce1ef; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+.trip-filters h3 { margin-bottom: 12px; }
+.trip-filters__fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.trip-filters label { display: grid; gap: 6px; flex: 1 1 120px; }
+.trip-filters .form-input { width: 100%; }
+.trip-filters p { margin-top: 8px; color: #45506a; }
+.details-dialog { border: 0; border-radius: 16px; padding: 24px; width: min(480px, 92vw); margin: auto; color: #182348; }
+.details-dialog::backdrop { background: #101b3a99; }
+.details-dialog h2 { margin-bottom: 16px; }
+.details-dialog textarea { width: 100%; margin: 10px 0; min-height: 120px; }
+.details-dialog__buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.trip-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.report-entry { margin: 12px 16px; white-space: normal; text-align: center; }
+.report-page { background: #f2f5fc; padding: 24px 16px; color: #182348; }
+.report-card { max-width: 560px; background: white; padding: 32px; border-radius: 20px; margin: 32px auto; box-shadow: 0 8px 32px #18234812; }
+.report-card h1 { font-size: 26px; margin: 24px 0 12px; }
+.report-card p { line-height: 1.6; margin: 12px 0; }
+.report-card label { display: block; margin: 18px 0 8px; font-weight: 600; }
+.report-card .form-input { width: 100%; }
+.report-card small { display: block; margin: 8px 0 20px; color: #4a5068; }
+.report-code { padding: 16px; background: #edf4ff; border-radius: 8px; overflow-wrap: anywhere; font-weight: 700; }
+[hidden] { display: none !important; }
+@media (max-width: 480px) {
+  .report-card { padding: 22px; margin: 8px auto; }
+  .navbar__inner { gap: 8px; }
+  .navbar__logo-icon { height: 24px; }
+  .navbar__center, .view-switch { display: none; }
+}
