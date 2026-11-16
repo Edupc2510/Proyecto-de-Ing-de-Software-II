@@ -547,62 +547,48 @@ async function loadDriverPublishedRoutes() {
 
     renderPublishedRoutes();
 
+    // US34: historial de rutas canceladas debajo de "Mis rutas publicadas"
+    if (typeof window.loadCancelledRoutes === 'function') {
+      window.loadCancelledRoutes();
+    }
+
   } catch (error) {
     console.error('[Dashboard] Error cargando rutas publicadas:', error);
     publishedRoutes = [];
     renderPublishedRoutes();
   }
 }
-async function cancelPublishedRoute(routeId) {
-  if (!routeId) {
+/**
+ * US34 - Abre el modal de cancelación (public/js/routeCancel.js), que exige
+ * escribir "CANCELAR" y avisa cuántos pasajeros serán liberados.
+ */
+function cancelPublishedRoute(routeId) {
+  const route = publishedRoutes.find(r => String(r.id) === String(routeId));
+
+  if (!route) {
     alert('No se pudo identificar la ruta a cancelar.');
     return;
   }
 
-  // US34 - Confirmación de seguridad: el conductor debe escribir "CANCELAR"
-  const confirmation = prompt(
-    'Vas a cancelar esta ruta. Los pasajeros con reserva serán liberados y notificados.\n\n' +
-    'Para confirmar, escribe CANCELAR:'
-  );
-
-  if (confirmation === null) return; // El conductor cerró la ventana
-
-  if (confirmation.trim() !== 'CANCELAR') {
-    alert('⚠️ No se canceló la ruta. Debes escribir exactamente la palabra CANCELAR.');
+  if (typeof window.openCancelRouteModal !== 'function') {
+    alert('No se pudo abrir la ventana de cancelación. Recarga la página.');
     return;
   }
 
-  const reason = prompt('Motivo de la cancelación (opcional):') || '';
-
-  try {
-    const res = await fetch(`/trips/${routeId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmation: confirmation.trim(), reason: reason.trim() })
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      alert(`⚠️ ${data.error || 'No se pudo cancelar la ruta.'}`);
-      return;
-    }
-
-    publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
-
-    renderPublishedRoutes();
-
-    if (typeof loadPassengerRoutes === 'function') {
-      await loadPassengerRoutes();
-    }
-
-    alert(`✅ ${data.message || 'Ruta cancelada correctamente.'}`);
-
-  } catch (error) {
-    console.error('[Dashboard] Error cancelando ruta:', error);
-    alert('Error de conexión al cancelar la ruta.');
-  }
+  window.openCancelRouteModal(route);
 }
+
+/**
+ * US34 - Se llama desde routeCancel.js cuando la cancelación fue exitosa.
+ */
+window.onRouteCancelled = async function onRouteCancelled(routeId) {
+  publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
+  renderPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
 function setDriverOriginLocation(addressName, lat, lng) {
   const originLat = Number(lat);
   const originLng = Number(lng);
