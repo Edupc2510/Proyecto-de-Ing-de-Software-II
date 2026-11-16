@@ -45,6 +45,17 @@ test('Factory omite el motivo cuando no se indicó', () => {
   assert.doesNotMatch(n.message, /Motivo/);
 });
 
+test('Factory acepta tipos nuevos sin cambiar a quien la usa: aviso de ruta editada (US33 de Camila)', () => {
+  const n = NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_UPDATED, {
+    route, booking: { passengerId: 'pas-3' }, changedLabels: ['hora', 'asientos'],
+  });
+  assert.equal(n.userId, 'pas-3');
+  assert.equal(n.priority, PRIORITY.HIGH);
+  assert.match(n.message, /\(hora, asientos\)/);
+  const sinCambios = NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_UPDATED, { route, booking: { passengerId: 'pas-3' } });
+  assert.doesNotMatch(sinCambios.message, /\(/);
+});
+
 test('Factory rechaza un tipo desconocido', () => {
   assert.throws(() => NotificationFactory.crear('tipo_inventado', {}), /desconocido/);
 });
