@@ -13,6 +13,8 @@ const {
     reactivateRoute,
     getRouteRequests
 } = require('./routeController');
+// US23 - Historial de viajes del pasajero
+const { getMyTripHistory } = require('./tripHistoryController');
 
 // Obtener todas las rutas
 router.get('/', getAllRoutes);
@@ -24,6 +26,8 @@ router.post('/join', joinRoute);
 // Rutas publicadas por el conductor en sesión
 // (deben ir antes de '/:routeId' para que "mine" no se tome como un ID)
 router.get('/mine', getMyPublishedRoutes);
+// US23 - Historial de viajes del pasajero (antes de '/:routeId')
+router.get('/history', getMyTripHistory);
 // US34 - Historial de rutas canceladas del conductor
 router.get('/mine/cancelled', getMyCancelledRoutes);
 // US14 - Solicitudes de pasajeros de una ruta
