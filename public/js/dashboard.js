@@ -32,6 +32,10 @@ let selectedRouteIdForBooking = null;
 
 // Rutas publicadas durante la sesión actual del conductor
 let publishedRoutes = [];
+
+// US27/US28: firma de la última lista pintada (si no cambió no se repinta) y ubicación en caché
+let lastPassengerRoutesSignature = null;
+let passengerLocationPromise = null;
 // ─────────────────────────────────────────────────────────────
 // INICIALIZACIÓN
 // ─────────────────────────────────────────────────────────────
@@ -168,6 +172,7 @@ function showScreen(name) {
  */
 function goToRoleSelection() {
   currentRole = null;
+  TripSortControl.stopAutoRefresh();
 
   // Ocultar badge de rol
   const badge = document.getElementById('role-badge');
@@ -199,6 +204,7 @@ function selectRole(role) {
     showScreen('passenger');
 
     loadPassengerRoutes();
+    TripSortControl.startAutoRefresh(loadPassengerRoutes); // US28 esc.04: asientos en tiempo casi real
     // Inicializar mapa después de que el DOM esté visible
     requestAnimationFrame(() => {
       setTimeout(() => initPassengerMap(), 100);
@@ -973,17 +979,26 @@ async function handleLogout() {
  */
 async function loadPassengerRoutes() {
   try {
-    const res = await fetch('/trips');
+    // US27/US28: catálogo ordenable (GET /trip-catalog) en lugar de /trips
+    const res = await fetch(TripSortControl.catalogUrl());
     if (!res.ok) throw new Error('No se pudieron cargar las rutas disponibles.');
 
-    const routes = await res.json();
+    const catalog = await res.json();
+    const routes = catalog.viajes;
+    TripSortControl.render(catalog.ordenes, catalog.orden);
     const routesContainer = document.getElementById('dynamic-passenger-routes');
     if (!routesContainer) return;
 
     if (!Array.isArray(routes) || routes.length === 0) {
+      lastPassengerRoutesSignature = null;
       routesContainer.innerHTML = '<p style="padding: 1rem; color: #4A5068; text-align: center;">No hay rutas disponibles por el momento.</p>';
       return;
     }
+
+    // US28 esc.04: el refresco automático solo repinta si cambió el orden o los asientos
+    const signature = JSON.stringify(routes.map(route => [route.id, route.seats]));
+    if (signature === lastPassengerRoutesSignature) return;
+    lastPassengerRoutesSignature = signature;
 
     const getUserLocation = () => new Promise(resolve => {
       const defaultLocation = [-12.046374, -77.042793]; // Lima centro como respaldo
@@ -1017,7 +1032,8 @@ async function loadPassengerRoutes() {
       return [-12.0916, -77.0353];
     };
 
-    const [userLat, userLng] = await getUserLocation();
+    passengerLocationPromise = passengerLocationPromise || getUserLocation();
+    const [userLat, userLng] = await passengerLocationPromise;
 
     routesContainer.innerHTML = routes.map((route, index) => {
       const driverOriginCoords = getRouteOriginCoords(route);
@@ -1027,7 +1043,7 @@ async function loadPassengerRoutes() {
       const distanceKM = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111;
 
       return `
-        <div class="route-card" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
+        <div class="route-card${route.agotado ? ' route-card--soldout' : ''}" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
           <div class="route-card__stops">
             <div class="route-stop route-stop--origin">
               <div class="route-stop__dot route-stop__dot--origin"></div>
@@ -1051,7 +1067,10 @@ async function loadPassengerRoutes() {
           <div class="route-card__meta" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
             <div>
               <span class="route-meta-chip">🕒 ${escapeHTML(route.time || '')}</span>
-              <span class="route-meta-chip">💺 ${route.seats} asist.</span>
+              ${route.agotado
+                ? '<span class="route-meta-chip route-meta-chip--soldout">Agotado</span>'
+                : `<span class="route-meta-chip">💺 ${route.seats} asist.</span>`}
+              ${route.driverRating && route.driverRating.average ? `<span class="route-meta-chip">⭐ ${route.driverRating.average}</span>` : ''}
             </div>
 
             <button 
@@ -1059,6 +1078,7 @@ async function loadPassengerRoutes() {
               class="btn btn--primary btn--sm btn-select-route" 
               data-route-index="${index}" 
               style="padding: 6px 16px; font-size: 12px;"
+              ${route.agotado ? 'disabled' : ''}
             >
               Seleccionar
             </button>
@@ -1100,6 +1120,7 @@ async function loadPassengerRoutes() {
 
   } catch (err) {
     console.error('[Dashboard] Error cargando rutas:', err);
+    lastPassengerRoutesSignature = null;
 
     const routesContainer = document.getElementById('dynamic-passenger-routes');
 

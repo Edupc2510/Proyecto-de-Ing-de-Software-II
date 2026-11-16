@@ -31,3 +31,7 @@ coverage/
 # Build folders
 dist/
 build/
+
+# Datos generados en ejecución (US19 y US32)
+data/user_profiles.json
+data/user_settings.json

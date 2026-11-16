@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveShare · Calificar pasajeros</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/account_pages.css" />
+  <script src="/js/theme.js"></script>
+</head>
+<body class="page-body">
+
+  <header class="page-header">
+    <a class="btn btn--ghost btn--sm" href="/dashboard">← Volver</a>
+    <h1 class="page-header__title">Calificar pasajeros</h1>
+    <span class="page-header__spacer"></span>
+    <img class="page-header__logo" src="/assets/moveshare-logo-dark.png" alt="MoveShare" />
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <h2 class="card__title">Mis pasajeros</h2>
+      <p class="card__hint">Cuando un viaje termina, puedes calificar a cada pasajero para mantener la calidad del servicio.</p>
+      <div id="lista" aria-live="polite"></div>
+      <div id="aviso" class="notice" role="status" aria-live="polite"></div>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-demo">Generar datos de demostración</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-demo-borrar">Borrar datos de demostración</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/calificaciones.js"></script>
+</body>
+</html>

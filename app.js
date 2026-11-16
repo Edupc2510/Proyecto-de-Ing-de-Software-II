@@ -13,6 +13,10 @@ const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
 const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
 const notificationRoutes = require('./src/notifications/notificationRoutes');
+// Sprint 2-4 · US19, US25, US27, US28, US32
+const tripCatalogRoutes = require('./src/tripCatalog/tripCatalogRoutes');
+const accountRoutes = require('./src/account/accountRoutes');
+const ratingRoutes = require('./src/ratings/ratingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +50,10 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
 app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
 app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
+// Sprint 2-4 · US19, US25, US27, US28, US32
+app.use('/trip-catalog', tripCatalogRoutes);  // US27 / US28 - Ordenar viajes por horario y por asientos
+app.use('/account', accountRoutes);           // US19 - Editar perfil · US32 - Gestión avanzada de cuenta
+app.use('/ratings', ratingRoutes);            // US25 - Calificar pasajero (convive con US24 en /ratings)
 // Página principal (login/registro)
 // Landing page principal
 app.get('/', (req, res) => {

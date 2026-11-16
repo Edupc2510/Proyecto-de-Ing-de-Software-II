@@ -3,6 +3,11 @@
 
 const { getAlerts } = require('./routeAlertModel');
 const { addRouteMatchNotifications } = require('./notificationModel');
+const { AccountFacade } = require('../account/accountFacade');
+
+// US32: si el usuario apagó las alertas de nuevos viajes, no se le notifica
+const cuentas = AccountFacade.crearPorDefecto();
+const puedeNotificar = (userId) => cuentas.puedeNotificar(userId, 'coincidenciaRuta');
 
 // Distancia máxima (km) entre origen/destino de la alerta y de la ruta para considerarla coincidente
 const MATCH_RADIUS_KM = 2;
@@ -102,6 +107,7 @@ function notifyMatchingAlertsForRoute(route) {
 
     alerts.forEach(alert => {
       if (notifiedUsers.has(alert.userId)) return;
+      if (!puedeNotificar(alert.userId)) return; // US32
       if (routeMatchesAlert(route, alert)) {
         notifiedUsers.add(alert.userId);
         toCreate.push(buildMatchNotification(route, alert));
@@ -124,7 +130,9 @@ function notifyMatchingAlertsForRoute(route) {
  */
 function notifyExistingRoutesForAlert(alert, activeRoutes) {
   try {
-    const matches = (activeRoutes || []).filter(route => routeMatchesAlert(route, alert));
+    const matches = puedeNotificar(alert.userId) // US32
+      ? (activeRoutes || []).filter(route => routeMatchesAlert(route, alert))
+      : [];
     addRouteMatchNotifications(matches.map(route => buildMatchNotification(route, alert)));
     return matches;
   } catch (error) {

@@ -1,0 +1,94 @@
+/* ============================================================
+   theme.css — Modo oscuro (US32)
+   Se activa con <html data-theme="dark"> (lo pone public/js/theme.js).
+   Redefine los tokens de main.css; el resto son ajustes puntuales para los
+   estilos del dashboard que tienen colores fijos o inline.
+   ============================================================ */
+
+/* El modal de perfil del dashboard usa --c-navy y --c-lime, que no estaban definidos
+   (el encabezado quedaba invisible incluso en modo claro). Se definen como alias. */
+:root {
+  --c-navy: var(--c-midnight-route);
+  --c-lime: var(--c-share-pulse);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --c-bg:            #0C1822;
+  --c-surface:       #14222E;
+  --c-surface-soft:  #192B39;
+  --c-white:         #14222E;
+  --c-border:        #263B4B;
+  --c-border-strong: #33495B;
+
+  --c-text:          #E8F0F6;
+  --c-text-mid:      #A8B7C5;
+  --c-text-soft:     #8596A6;
+  --c-graphite-path: #E8F0F6;
+  --c-link:          #DBF227;
+  --c-link-hover:    #A9BF04;
+
+  --c-success-bg:    #10281A;
+  --c-success-border:#1E5B35;
+  --c-error-bg:      #301518;
+  --c-error-border:  #6E2A31;
+  --c-warning-bg:    #2D2412;
+  --c-warning-border:#6B511D;
+  --c-info-bg:       #112A38;
+  --c-info-border:   #24485C;
+}
+
+html[data-theme="dark"] body { background: var(--c-bg); color: var(--c-text); }
+
+html[data-theme="dark"] .navbar { background: rgba(12, 24, 34, 0.94); }
+html[data-theme="dark"] .profile-modal { background: var(--c-surface); color: var(--c-text); }
+html[data-theme="dark"] .form-input,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] .form-textarea { background: var(--c-surface-soft); color: var(--c-text); border-color: var(--c-border); }
+
+/* Tarjetas de ruta: el dashboard las pinta con estilos inline claros */
+html[data-theme="dark"] .route-card { background: var(--c-surface) !important; border-color: var(--c-border) !important; }
+html[data-theme="dark"] .route-card .route-stop__name { color: var(--c-text); }
+html[data-theme="dark"] .route-meta-chip { background: var(--c-surface-soft); color: var(--c-text); }
+
+/* ── Ajustes del dashboard: textos que usan --c-midnight-route (oscuro fijo) ── */
+html[data-theme="dark"] .navbar__brand-name,
+html[data-theme="dark"] .navbar__username,
+html[data-theme="dark"] .role-selection__greeting,
+html[data-theme="dark"] .role-card__title,
+html[data-theme="dark"] .btn-back,
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .route-stop__name,
+html[data-theme="dark"] .driver-form-body .form-label,
+html[data-theme="dark"] .form-label,
+html[data-theme="dark"] .published-route-item__title,
+html[data-theme="dark"] .profile-info-item strong,
+html[data-theme="dark"] .view-switch__btn:not(.view-switch__btn--active) { color: var(--c-text); }
+
+html[data-theme="dark"] .btn--ghost,
+html[data-theme="dark"] .btn--secondary,
+html[data-theme="dark"] .navbar .btn--ghost {
+  color: var(--c-text);
+  background: var(--c-surface);
+  border-color: var(--c-border-strong);
+}
+html[data-theme="dark"] .btn--ghost:hover,
+html[data-theme="dark"] .btn--secondary:hover,
+html[data-theme="dark"] .navbar .btn--ghost:hover { color: var(--c-share-pulse); border-color: var(--c-share-pulse); }
+
+/* Fondos claros fijos */
+html[data-theme="dark"] .app-viewport { background: linear-gradient(180deg, #0F1D29 0%, var(--c-bg) 100%); }
+html[data-theme="dark"] .section-header { background: rgba(20, 34, 46, 0.92); }
+html[data-theme="dark"] .profile-info-item { background: var(--c-surface-soft); }
+html[data-theme="dark"] .route-stop__dot--dest { background: var(--c-text-mid); }
+html[data-theme="dark"] .view-switch { background: var(--c-surface-soft); border-color: var(--c-border); }
+
+/* Textos en línea del dashboard (listas vacías, errores) */
+html[data-theme="dark"] #dynamic-passenger-routes > p { color: var(--c-text-mid) !important; }
+
+html[data-theme="dark"] .btn-back { background: var(--c-surface-soft); border-color: var(--c-border); color: var(--c-text); }
+
+/* Encabezado del modal de perfil: título blanco sobre fondo azul (ambos modos) */
+.profile-modal__header h2 { color: #ffffff; }
+html[data-theme="dark"] .profile-modal h3 { color: var(--c-text); }

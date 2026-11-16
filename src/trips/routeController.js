@@ -24,6 +24,10 @@ const {
 } = require('../notifications/notificationModel');
 const { notifyMatchingAlertsForRoute } = require('../notifications/routeMatchingService');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
+const { AccountFacade } = require('../account/accountFacade');
+
+// US32: política de cuenta (una cuenta pausada no aparece en búsquedas ni recibe solicitudes)
+const cuentas = AccountFacade.crearPorDefecto();
 
 // Palabra que el conductor debe escribir para confirmar la cancelación (US34 - Escenario 03)
 const CANCEL_CONFIRMATION_WORD = 'CANCELAR';
@@ -64,6 +68,7 @@ const getAllRoutes = (req, res) => {
         // 3. FILTRAR: solo rutas vigentes, con asientos y NO canceladas (US34)
         const validRoutes = storedRoutes
             .filter(route => isRouteActive(route, ahora))
+            .filter(route => cuentas.estaVisible(route.driverId)) // US32: cuenta pausada
             .map(route => {
                 const driver = route.driverId ? findUserById(route.driverId) : null;
                 return {
@@ -273,6 +278,13 @@ const joinRoute = (req, res) => {
         if (route.driverId && String(route.driverId) === String(passengerId)) {
             return res.status(403).json({
                 error: "No puedes reservar un asiento en tu propia ruta."
+            });
+        }
+
+        // US32: un conductor con la cuenta pausada no recibe solicitudes
+        if (route.driverId && !cuentas.puedeRecibirSolicitudes(route.driverId)) {
+            return res.status(409).json({
+                error: "El conductor pausó su cuenta y no recibe solicitudes por ahora."
             });
         }
 
