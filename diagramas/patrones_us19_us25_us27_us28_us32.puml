@@ -1,0 +1,169 @@
+@startuml patrones_us19_us25_us27_us28_us32
+title Patrones de diseño - US19, US25, US27, US28 y US32 (MoveShare)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
+hide empty members
+
+' ───────────── Infraestructura compartida ─────────────
+package "shared (Singleton + DAO)" {
+  class JsonDataSource <<Singleton>> {
+    - {static} instanciaUnica
+    + {static} getInstancia()
+    + leerColeccion(archivo)
+    + escribirColeccion(archivo, items)
+  }
+  abstract class JsonDAO <<DAO>> {
+    + listar()
+    + buscar(predicado)
+    + buscarPorId(id)
+    + guardar(entidad)
+    + actualizar(id, cambios)
+    + eliminarDonde(predicado)
+  }
+  class UsuarioRepositorioAdapter <<Adapter>> {
+    + buscarPorId(id)
+    + existe(id)
+    + actualizar(id, cambios)
+    + listar()
+  }
+  JsonDAO ..> JsonDataSource : usa la única instancia
+}
+
+package "existente (Adaptees, sin modificar)" #EEEEEE {
+  class "auth/userModel" as userModel <<funciones>>
+  class "trips/routeModel" as routeModel <<funciones>>
+  class "trips/bookingModel (US14)" as bookingModel <<funciones>>
+  class "ratings/ratingModel (US24)" as ratingModelUS24 <<funciones>>
+  class "ratings/driverRatingController.isTripFinished (US24)" as isFinished <<función>>
+}
+UsuarioRepositorioAdapter ..> userModel : delega
+
+' ───────────── US27 y US28: catálogo de viajes ─────────────
+package "tripCatalog (US27 / US28)" {
+  class TripCatalogController <<Presentación>> {
+    + listar(req, res)
+  }
+  class CatalogoViajesService <<Servicio>> {
+    + listar({orden, tarifaMax})
+  }
+  class FabricaOrdenamiento <<Factory Method>> {
+    + {static} crear(clave) : OrdenamientoViajes
+    + {static} opciones()
+  }
+  abstract class OrdenamientoViajes <<Strategy>> {
+    + clave
+    + etiqueta
+    + mostrarAgotados
+    + comparador(a, b, ctx)
+    + ordenar(viajes, ctx)
+  }
+  class MasProximos
+  class MasTarde
+  class MasAsientosLibres
+  class UltimosCupos
+  class FiltroTarifaMaxima {
+    + acepta(viaje)
+  }
+  class RutaFuenteAdapter <<Adapter>> {
+    + listar()
+  }
+  class CalificacionConductorAdapter <<Adapter>> {
+    + resumenDe(driverId)
+  }
+
+  TripCatalogController --> CatalogoViajesService
+  CatalogoViajesService ..> FabricaOrdenamiento : pide la estrategia
+  FabricaOrdenamiento ..> OrdenamientoViajes : crea
+  OrdenamientoViajes <|-- MasProximos
+  OrdenamientoViajes <|-- MasTarde
+  OrdenamientoViajes <|-- MasAsientosLibres
+  OrdenamientoViajes <|-- UltimosCupos
+  CatalogoViajesService ..> FiltroTarifaMaxima : filtros activos
+  CatalogoViajesService --> RutaFuenteAdapter : fuente (DIP)
+  CatalogoViajesService --> CalificacionConductorAdapter : desempate (US27)
+  CatalogoViajesService --> UsuarioRepositorioAdapter : nombre del conductor
+  RutaFuenteAdapter ..> routeModel : delega
+  CalificacionConductorAdapter ..> ratingModelUS24 : delega
+}
+
+' ───────────── US19 y US32: cuenta ─────────────
+package "account (US19 / US32)" {
+  class AccountController <<Presentación>>
+  class AccountFacade <<Facade>> {
+    + obtenerPerfil(userId)
+    + actualizarPerfil(userId, datos)
+    + obtenerAjustes(userId)
+    + actualizarAjustes(userId, cambios)
+    + perfilPublico(userId)
+    + estaVisible(userId)
+    + puedeRecibirSolicitudes(userId)
+    + puedeNotificar(userId, tipo)
+  }
+  class ValidadorPerfil {
+    + validar(datos)
+  }
+  class ReglaNombre
+  class ReglaTelefono
+  class ReglaFoto
+  class ReglaPreferencias
+  abstract class RegistroPorUsuarioDAO <<DAO>> {
+    + guardarOActualizar(userId, cambios)
+  }
+  class PerfilDAO
+  class AjustesDAO
+
+  AccountController --> AccountFacade
+  AccountFacade --> UsuarioRepositorioAdapter
+  AccountFacade --> ValidadorPerfil
+  ValidadorPerfil o-- ReglaNombre
+  ValidadorPerfil o-- ReglaTelefono
+  ValidadorPerfil o-- ReglaFoto
+  ValidadorPerfil o-- ReglaPreferencias
+  AccountFacade --> PerfilDAO
+  AccountFacade --> AjustesDAO
+  JsonDAO <|-- RegistroPorUsuarioDAO
+  RegistroPorUsuarioDAO <|-- PerfilDAO
+  RegistroPorUsuarioDAO <|-- AjustesDAO
+}
+CatalogoViajesService ..> AccountFacade : visibilidad (cuenta pausada)
+
+' ───────────── US25: calificar pasajero ─────────────
+package "ratings (US25)" {
+  class PassengerRatingController <<Presentación>>
+  class CalificacionService <<Servicio>> {
+    + calificar(driverId, {bookingId, score, comment})
+    + viajesPorCalificar(driverId)
+    + calificacionesEmitidas(driverId)
+  }
+  class ReservaViajeAdapter <<Adapter>> {
+    + buscarReserva(id)
+    + listarDelConductor(driverId)
+    + estaConfirmada(reserva)
+    + haTerminado(reserva, ahora)
+  }
+  class CalificacionPasajeroDAO <<DAO>> {
+    + buscarDuplicada(...)
+    + listarEmitidas(driverId)
+  }
+  PassengerRatingController --> CalificacionService
+  CalificacionService --> ReservaViajeAdapter
+  CalificacionService --> CalificacionPasajeroDAO
+  CalificacionService --> UsuarioRepositorioAdapter
+  JsonDAO <|-- CalificacionPasajeroDAO
+  ReservaViajeAdapter ..> bookingModel : delega
+  ReservaViajeAdapter ..> isFinished : reutiliza la regla (DRY)
+}
+
+note bottom of OrdenamientoViajes
+  OCP: un criterio nuevo = una clase nueva
+  + registrarla en la fábrica.
+  El servicio no cambia.
+end note
+
+note bottom of AccountFacade
+  Un solo punto de entrada para el controlador
+  (Ley de Demeter) sobre 4 subsistemas.
+end note
+@enduml
