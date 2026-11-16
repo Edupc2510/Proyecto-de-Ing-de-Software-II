@@ -1,7 +1,7 @@
 @startuml
 skinparam backgroundcolor #FFFFFF
 skinparam classAttributeIconSize 0
-title Patrones Observer y Factory - eventos de viaje y notificaciones (US14, US31, US34)
+title Patrones Observer, Factory, Strategy y Adapter - US14, US31, US34 (Luciano Moscoso)
 
 package "shared/events" {
   class TripEventBus <<Sujeto>> {
@@ -14,9 +14,23 @@ package "shared/events" {
     ROUTE_PUBLISHED = "ruta_publicada"
     BOOKING_CREATED = "reserva_creada"
     ROUTE_CANCELLED = "ruta_cancelada"
+    ROUTE_UPDATED = "ruta_actualizada" (US33, Camila)
   }
   class registerTripSubscribers <<función>> {
     + registerTripSubscribers(bus) : TripEventBus
+  }
+}
+
+package "shared/persistence" {
+  class JsonDataSource <<Singleton>> {
+    - {static} instanciaUnica : JsonDataSource
+    + {static} getInstancia() : JsonDataSource
+    + leerColeccion(nombre) : Array
+    + escribirColeccion(nombre, items) : boolean
+  }
+  class createJsonStore <<Adapter>> {
+    + read() : Array
+    + write(items) : boolean
   }
 }
 
@@ -44,10 +58,26 @@ package "notifications" {
     + crear(type : string, data : Object) : Notificacion
   }
   class routeMatchingService <<Facade>> {
-    + distanceKm(a, b) : number
-    + isTimeInRange(time, from, to) : boolean
-    + routeMatchesAlert(route, alert) : boolean
+    - CRITERIOS_BASE : CriterioCoincidencia[]
+    - CRITERIOS_NOTIFICACION : CriterioCoincidencia[]
+    + routeMatchesAlert(route, alert, criterios) : boolean
     + notifyMatchingAlertsForRoute(route) : number
+    + notifyExistingRoutesForAlert(alert, routes) : Array
+  }
+  abstract class CriterioCoincidencia <<Strategy>> {
+    + nombre : string
+    + {abstract} cumple(route, alert) : boolean
+  }
+  class CriterioAlertaActiva
+  class CriterioNoEsPropiaRuta
+  class CriterioCoordenadasValidas
+  class CriterioDistancia {
+    + campo : string
+    + radioKm : number = 2
+  }
+  class CriterioHorario
+  class CriterioPreferenciaCuenta {
+    + puedeNotificar : Function
   }
   class notificationModel {
     + NOTIFICATION_TYPES
@@ -70,4 +100,14 @@ notificationSubscriber ..> routeMatchingService : coincidencias US31
 routeMatchingService ..> NotificationFactory : crear(ROUTE_MATCH)
 reliabilitySubscriber ..> driverReliabilityModel : addStrike()
 NotificationFactory ..> notificationModel : usa tipos y prioridades
+routeMatchingService "1" o-- "1..*" CriterioCoincidencia : aplica todos >
+CriterioCoincidencia <|-- CriterioAlertaActiva
+CriterioCoincidencia <|-- CriterioNoEsPropiaRuta
+CriterioCoincidencia <|-- CriterioCoordenadasValidas
+CriterioCoincidencia <|-- CriterioDistancia
+CriterioCoincidencia <|-- CriterioHorario
+CriterioCoincidencia <|-- CriterioPreferenciaCuenta
+createJsonStore ..> JsonDataSource : adapta read/write a leerColeccion/escribirColeccion
+notificationModel ..> createJsonStore : persistencia
+driverReliabilityModel ..> createJsonStore : persistencia
 @enduml
