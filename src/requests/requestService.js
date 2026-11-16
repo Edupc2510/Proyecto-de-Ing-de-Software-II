@@ -1,15 +1,17 @@
 // requests/requestService.js
 // Lógica de negocio de US15 - Visualizar estado de solicitudes.
-// Usa el DAO para los datos y la fábrica de estados para la presentación.
+// Lee las solicitudes del modelo de la US14 (bookings) mediante el adapter
+// y usa la fábrica de estados para la presentación.
 
-const { SolicitudDAO } = require('./requestDAO');
+const { BookingSolicitudAdapter } = require('./bookingRequestAdapter');
 const { FabricaEstadoSolicitud } = require('./requestStatusFactory');
-const { REQUEST_STATUS, transicion } = require('./requestModel');
+const { REQUEST_STATUS } = require('./requestModel');
 const { DomainError } = require('../shared/httpHelpers');
 
 class SolicitudService {
-  constructor(solicitudDAO = new SolicitudDAO()) {
-    this.dao = solicitudDAO;
+  /** @param {BookingSolicitudAdapter} fuente */
+  constructor(fuente = BookingSolicitudAdapter.crearPorDefecto()) {
+    this.fuente = fuente;
   }
 
   /**
@@ -22,7 +24,8 @@ class SolicitudService {
       throw new DomainError('El estado de filtro no es válido.');
     }
 
-    const solicitudes = this.#actualizarExpiradas(this.dao.listarPorPasajero(passengerId));
+    const ahora = Date.now();
+    const solicitudes = this.fuente.listarPorPasajero(passengerId).map(s => conExpiracion(s, ahora));
 
     const resumen = FabricaEstadoSolicitud.codigosValidos().reduce((acc, codigo) => ({ ...acc, [codigo]: 0 }), {});
     solicitudes.forEach(s => { resumen[s.status] = (resumen[s.status] || 0) + 1; });
@@ -39,40 +42,22 @@ class SolicitudService {
   }
 
   detalle(passengerId, solicitudId) {
-    const solicitud = this.dao.buscarDelPasajero(passengerId, solicitudId);
+    const solicitud = this.fuente.buscarDelPasajero(passengerId, solicitudId);
     if (!solicitud) throw new DomainError('La solicitud no existe.', 404);
-    const [actualizada] = this.#actualizarExpiradas([solicitud]);
-    return this.#aVista(actualizada, { conHistorial: true });
+    return this.#aVista(conExpiracion(solicitud, Date.now()), { conHistorial: true });
   }
 
   cancelar(passengerId, solicitudId) {
-    const solicitud = this.dao.buscarDelPasajero(passengerId, solicitudId);
+    const solicitud = this.fuente.buscarDelPasajero(passengerId, solicitudId);
     if (!solicitud) throw new DomainError('La solicitud no existe.', 404);
 
-    const estado = FabricaEstadoSolicitud.crearEstado(solicitud.status);
+    const estado = FabricaEstadoSolicitud.crearEstado(conExpiracion(solicitud, Date.now()).status);
     if (!estado.puedeCancelar()) {
       throw new DomainError(`No puedes cancelar una solicitud en estado "${estado.etiqueta}".`, 409);
     }
 
-    const actualizada = this.dao.actualizar(
-      solicitud.id,
-      transicion(solicitud, REQUEST_STATUS.CANCELLED, 'Cancelada por el pasajero.')
-    );
+    const actualizada = this.fuente.cancelar(solicitud.id, 'Cancelada por el pasajero.');
     return this.#aVista(actualizada, { conHistorial: true });
-  }
-
-  /**
-   * Una solicitud pendiente cuyo viaje ya salió pasa a "expirada".
-   */
-  #actualizarExpiradas(solicitudes) {
-    const ahora = Date.now();
-    return solicitudes.map(s => {
-      const salida = s.route?.departureAt ? new Date(s.route.departureAt).getTime() : NaN;
-      if (s.status === REQUEST_STATUS.PENDING && Number.isFinite(salida) && salida <= ahora) {
-        return this.dao.actualizar(s.id, transicion(s, REQUEST_STATUS.EXPIRED, 'El viaje salió sin respuesta del conductor.'));
-      }
-      return s;
-    });
   }
 
   #aVista(solicitud, { conHistorial = false } = {}) {
@@ -83,6 +68,7 @@ class SolicitudService {
       driver: { name: solicitud.driver?.name },
       route: solicitud.route,
       seatsRequested: solicitud.seatsRequested,
+      pickupAddress: solicitud.pickupAddress,
       message: solicitud.message,
       createdAt: solicitud.createdAt,
       updatedAt: solicitud.updatedAt,
@@ -97,6 +83,20 @@ class SolicitudService {
     }
     return vista;
   }
+}
+
+/**
+ * Una solicitud pendiente cuyo viaje ya salió se muestra como "expirada".
+ * Se calcula al leer, sin modificar bookings.json.
+ */
+function conExpiracion(solicitud, ahora) {
+  const salida = solicitud.route?.departureAt ? new Date(solicitud.route.departureAt).getTime() : NaN;
+  if (solicitud.status !== REQUEST_STATUS.PENDING || !Number.isFinite(salida) || salida > ahora) return solicitud;
+  return {
+    ...solicitud,
+    status: REQUEST_STATUS.EXPIRED,
+    history: [...(solicitud.history || []), { status: REQUEST_STATUS.EXPIRED, at: new Date(salida).toISOString(), note: 'El viaje salió sin respuesta del conductor.' }],
+  };
 }
 
 module.exports = { SolicitudService };

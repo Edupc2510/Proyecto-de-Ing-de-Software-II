@@ -7,7 +7,8 @@ const { GeneradorCodigoReclamo } = require('../src/claims/claimCodeGenerator');
 const { ReclamoFacade } = require('../src/claims/claimFacade');
 const { VistaReclamoBase, ConTiempoDeRespuesta, ConLineaDeTiempo } = require('../src/claims/claimViewDecorators');
 const { ReservaRepositorio } = require('../src/reservations/reservationRepository');
-const { ReservaDAO } = require('../src/reservations/reservationDAO');
+const { BookingAdapter } = require('../src/reservations/bookingAdapter');
+const { crearFakeBookingModel } = require('./helpers/fakeBookingModel');
 
 test('Singleton: el generador de códigos es único y correlativo', () => {
   const g = GeneradorCodigoReclamo.getInstancia();
@@ -36,7 +37,7 @@ test('Decorator: cada decorador agrega información sin modificar la vista base'
 });
 
 test('Facade: registra y consulta reclamos con una interfaz simple (US37)', () => {
-  const facade = new ReclamoFacade({ reservas: new ReservaRepositorio([new ReservaDAO()]) });
+  const facade = new ReclamoFacade({ reservas: new ReservaRepositorio([new BookingAdapter(crearFakeBookingModel())]) });
   const reclamo = facade.registrarReclamo('p1', { category: 'cobro', subject: 'Cobro doble', description: 'Me cobraron dos veces' });
   facade.actualizarEstado(reclamo.id, 'resuelto', { nota: 'Se devolvió el dinero', agente: 'Andrea', respuesta: 'Devolución realizada' });
 

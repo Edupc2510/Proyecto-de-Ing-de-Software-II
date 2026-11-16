@@ -1,13 +1,16 @@
-// tests/requests.test.js - US15 (Factory Method + DAO) y Singleton de persistencia
+// tests/requests.test.js - US15 (Factory Method + Adapter) y Singleton de persistencia
 require('./helpers/tempDataDir');
 const test = require('node:test');
 const assert = require('node:assert');
 
 const { JsonDataSource } = require('../src/shared/persistence/JsonDataSource');
 const { FabricaEstadoSolicitud, EstadoSolicitud } = require('../src/requests/requestStatusFactory');
-const { SolicitudDAO } = require('../src/requests/requestDAO');
+const { BookingSolicitudAdapter } = require('../src/requests/bookingRequestAdapter');
 const { SolicitudService } = require('../src/requests/requestService');
-const { crearSolicitud, REQUEST_STATUS } = require('../src/requests/requestModel');
+const { REQUEST_STATUS } = require('../src/requests/requestModel');
+const { crearFakeBookingModel, datosBooking } = require('./helpers/fakeBookingModel');
+
+const HORA = 3600e3;
 
 test('Singleton: JsonDataSource siempre devuelve la misma instancia', () => {
   assert.strictEqual(JsonDataSource.getInstancia(), JsonDataSource.getInstancia());
@@ -23,21 +26,32 @@ test('Factory Method: crea el estado concreto según el código', () => {
   assert.strictEqual(FabricaEstadoSolicitud.crearEstado('desconocido').codigo, 'pendiente');
 });
 
-test('US15: lista solicitudes del pasajero, expira pendientes vencidas y permite cancelar', () => {
-  const dao = new SolicitudDAO();
-  const service = new SolicitudService(dao);
-  const futura = crearSolicitud({ passengerId: 'p1', driver: { name: 'Ana' }, route: { origin: 'A', dest: 'B', departureAt: new Date(Date.now() + 3600e3).toISOString() } });
-  const vencida = crearSolicitud({ passengerId: 'p1', driver: { name: 'Beto' }, route: { origin: 'C', dest: 'D', departureAt: new Date(Date.now() - 3600e3).toISOString() } });
-  const ajena = crearSolicitud({ passengerId: 'otro', driver: { name: 'X' }, route: {} });
-  [futura, vencida, ajena].forEach(s => dao.guardar(s));
+test('US15: muestra los bookings como solicitudes, calcula expiradas y permite cancelar pendientes', () => {
+  const modelo = crearFakeBookingModel();
+  const aceptada = modelo.agregar(datosBooking());
+  const pendiente = modelo.agregar(datosBooking({ status: 'pendiente', offsetMs: 2 * HORA }));
+  const vencida = modelo.agregar(datosBooking({ status: 'pendiente', offsetMs: -HORA }));
+  modelo.agregar(datosBooking({ status: 'cancelada', cancelReason: 'Se malogró el auto' }));
+  const ajena = modelo.agregar(datosBooking({ passengerId: 'otro' }));
 
+  const service = new SolicitudService(new BookingSolicitudAdapter(modelo));
   const resultado = service.listar('p1');
-  assert.strictEqual(resultado.total, 2);
-  assert.strictEqual(resultado.resumen.expirada, 1);
-  assert.strictEqual(resultado.resumen.pendiente, 1);
+  assert.strictEqual(resultado.total, 4);
+  assert.deepStrictEqual(
+    [resultado.resumen.aceptada, resultado.resumen.pendiente, resultado.resumen.expirada, resultado.resumen.cancelada],
+    [1, 1, 1, 1]
+  );
+  assert.match(resultado.solicitudes.find(s => s.estado.codigo === 'cancelada').descripcion, /conductor canceló.*Se malogró/);
+  // La expiración se calcula al mostrar: bookings.json no se modifica
+  assert.strictEqual(modelo.findBookingById(vencida.id).status, 'pendiente');
 
-  const cancelada = service.cancelar('p1', futura.id);
+  const cancelada = service.cancelar('p1', pendiente.id);
   assert.strictEqual(cancelada.estado.codigo, REQUEST_STATUS.CANCELLED);
-  assert.throws(() => service.cancelar('p1', futura.id), /No puedes cancelar/);
+  assert.strictEqual(cancelada.descripcion, 'Cancelaste esta solicitud.');
+  assert.strictEqual(modelo.findBookingById(pendiente.id).status, 'cancelada');
+
+  assert.throws(() => service.cancelar('p1', aceptada.id), /No puedes cancelar/);
+  assert.throws(() => service.cancelar('p1', vencida.id), /No puedes cancelar/);
   assert.throws(() => service.detalle('p1', ajena.id), /no existe/);
+  assert.strictEqual(service.detalle('p1', aceptada.id).historial.length, 2);
 });

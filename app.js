@@ -11,6 +11,8 @@ const path = require('path');
 const authRoutes = require('./src/auth/authRoutes');
 const dashboardRoutes = require('./src/dashboards/dashboardRoutes');
 const routeRoutes = require('./src/trips/routeRoutes');
+const driverRatingRoutes = require('./src/ratings/driverRatingRoutes');
+const notificationRoutes = require('./src/notifications/notificationRoutes');
 // Sprint 2-4 · Eduardo (US15, US17, US30, US35, US37)
 const requestRoutes = require('./src/requests/requestRoutes');
 const reservationRoutes = require('./src/reservations/reservationRoutes');
@@ -48,6 +50,8 @@ app.use(session({
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
+app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
+app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
 // Sprint 2-4 · Eduardo (US15, US17, US30, US35, US37)
 app.use('/requests', requestRoutes);            // US15 - Estado de solicitudes
 app.use('/reservations', reservationRoutes);    // US17 - Reservas · US35 - Confirmar participación

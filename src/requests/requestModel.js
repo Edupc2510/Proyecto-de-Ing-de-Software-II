@@ -1,11 +1,13 @@
 // requests/requestModel.js
-// Modelo de dominio de una Solicitud de viaje (US15).
+// Estados de una Solicitud de viaje (US15).
 //
-// Una solicitud nace cuando un pasajero pide unirse a la ruta de un conductor.
-// Guarda una "foto" de la ruta y del conductor para que el pasajero pueda
-// seguir viendo el estado aunque la ruta original se elimine al vencer.
-
-const { v4: uuidv4 } = require('uuid');
+// Las solicitudes NO tienen un modelo propio: son los registros del modelo de
+// la US14 (src/trips/bookingModel.js, data/bookings.json). Este archivo solo
+// define los estados que la vista de US15 sabe mostrar.
+//   - "confirmada" en bookings.json  -> la solicitud fue ACEPTADA
+//   - "cancelada"                    -> CANCELADA (por el pasajero o porque el conductor canceló la ruta)
+//   - "pendiente" / "rechazada"      -> soportados para cuando exista aprobación manual del conductor
+//   - "expirada"                     -> se calcula al mostrar: pendiente cuyo viaje ya salió
 
 const REQUEST_STATUS = Object.freeze({
   PENDING: 'pendiente',
@@ -15,47 +17,12 @@ const REQUEST_STATUS = Object.freeze({
   EXPIRED: 'expirada',
 });
 
-/**
- * Construye una nueva solicitud con su historial inicial.
- */
-function crearSolicitud({ passengerId, routeId, driverId, driver, route, seatsRequested = 1, message = '', demo = false }) {
-  const ahora = new Date().toISOString();
-  return {
-    id: uuidv4(),
-    passengerId: String(passengerId),
-    routeId: routeId != null ? String(routeId) : null,
-    driverId: driverId != null ? String(driverId) : null,
-    driver: {
-      name: driver?.name || 'Conductor MoveShare',
-      phone: driver?.phone || null,
-      email: driver?.email || null,
-    },
-    route: {
-      origin: route?.origin || '',
-      dest: route?.dest || '',
-      time: route?.time || '',
-      departureAt: route?.departureAt || null,
-    },
-    seatsRequested: Number(seatsRequested) || 1,
-    message: String(message || ''),
-    status: REQUEST_STATUS.PENDING,
-    responseNote: null,
-    history: [{ status: REQUEST_STATUS.PENDING, at: ahora, note: 'Solicitud enviada al conductor.' }],
-    createdAt: ahora,
-    updatedAt: ahora,
-    demo: Boolean(demo),
-  };
-}
+/** Estado guardado en bookings.json -> estado de la solicitud */
+const DESDE_BOOKING = Object.freeze({
+  pendiente: REQUEST_STATUS.PENDING,
+  confirmada: REQUEST_STATUS.ACCEPTED,
+  rechazada: REQUEST_STATUS.REJECTED,
+  cancelada: REQUEST_STATUS.CANCELLED,
+});
 
-/**
- * Devuelve los cambios necesarios para pasar una solicitud a un nuevo estado,
- * agregando la transición al historial.
- */
-function transicion(solicitud, nuevoEstado, nota) {
-  return {
-    status: nuevoEstado,
-    history: [...(solicitud.history || []), { status: nuevoEstado, at: new Date().toISOString(), note: nota || null }],
-  };
-}
-
-module.exports = { REQUEST_STATUS, crearSolicitud, transicion };
+module.exports = { REQUEST_STATUS, DESDE_BOOKING };

@@ -3,17 +3,21 @@ require('./helpers/tempDataDir');
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { ReservaDAO } = require('../src/reservations/reservationDAO');
 const { ReservaRepositorio } = require('../src/reservations/reservationRepository');
 const { ReservaService } = require('../src/reservations/reservationService');
 const { ColeccionReservas } = require('../src/reservations/reservationCollection');
 const { obtenerFiltro } = require('../src/reservations/reservationFilters');
 const { BookingAdapter } = require('../src/reservations/bookingAdapter');
-const { crearReserva, RESERVATION_STATUS } = require('../src/reservations/reservationModel');
+const { RESERVATION_STATUS } = require('../src/reservations/reservationModel');
+const { crearFakeBookingModel, datosBooking } = require('./helpers/fakeBookingModel');
 
 const HORA = 3600e3;
+let n = 0;
 const reservaEn = (offset, extra = {}) => ({
-  ...crearReserva({ passengerId: 'p1', driverId: 'd1', driver: { name: 'Ana' }, route: { origin: 'A', dest: 'B', departureAt: new Date(Date.now() + offset).toISOString() } }),
+  id: `r${++n}`,
+  passengerId: 'p1',
+  route: { origin: 'A', dest: 'B', departureAt: new Date(Date.now() + offset).toISOString() },
+  status: RESERVATION_STATUS.CONFIRMED,
   ...extra,
 });
 
@@ -36,36 +40,29 @@ test('Iterator + Strategy: recorre solo las próximas, de la más cercana a la m
   assert.strictEqual(obtenerFiltro('inexistente'), null);
 });
 
-test('Adapter: traduce reservas del bookingModel del equipo al formato de MoveShare', () => {
-  const bookings = [{
-    id: 'b1', routeId: '7', driverId: 'u9', passengerId: 'p1', status: 'confirmada',
-    routeSnapshot: { origin: 'Surco', dest: 'Ulima', time: '07:30', expiresAtTimestamp: Date.now() + HORA },
-    createdAt: new Date().toISOString(),
-  }];
-  const bookingModelFalso = {
-    getBookingsByPassenger: id => bookings.filter(b => b.passengerId === id),
-    findBookingById: id => bookings.find(b => b.id === id) || null,
-    getBookings: () => bookings,
-    saveBookings: () => true,
-  };
-  const userModelFalso = { findUserById: () => ({ firstName: 'Luis', lastName: 'Rojas' }) };
-  const adapter = new BookingAdapter(bookingModelFalso, userModelFalso);
+test('Adapter: traduce los bookings de la US14 al formato de reservas', () => {
+  const modelo = crearFakeBookingModel();
+  const b = modelo.agregar(datosBooking({ driverId: 'u9', driverSnapshot: undefined }));
+  modelo.agregar(datosBooking({ status: 'pendiente' })); // una solicitud pendiente no es reserva
+  const userModelFalso = { findUserById: id => (id === 'u9' ? { firstName: 'Luis', lastName: 'Rojas' } : null) };
+  const adapter = new BookingAdapter(modelo, userModelFalso);
 
-  const [reserva] = adapter.listarPorPasajero('p1');
-  assert.strictEqual(reserva.driver.name, 'Luis Rojas');
-  assert.strictEqual(reserva.route.origin, 'Surco');
-  assert.strictEqual(reserva.participation.status, 'pendiente');
-  assert.ok(reserva.route.departureAt);
+  const reservas = adapter.listarPorPasajero('p1');
+  assert.strictEqual(reservas.length, 1);
+  assert.strictEqual(reservas[0].driver.name, 'Luis Rojas');
+  assert.strictEqual(reservas[0].route.origin, 'A');
+  assert.strictEqual(reservas[0].participation.status, 'pendiente');
+  assert.ok(reservas[0].route.departureAt);
 
-  const actualizada = adapter.actualizar('b1', { participation: { status: 'confirmada' } });
+  const actualizada = adapter.actualizar(b.id, { participation: { status: 'confirmada' } });
   assert.strictEqual(actualizada.participation.status, 'confirmada');
+  assert.strictEqual(modelo.findBookingById(b.id).participation.status, 'confirmada');
 });
 
 test('Command: confirmar, declinar y deshacer participación (US35)', () => {
-  const dao = new ReservaDAO();
-  dao.origen = 'moveshare';
-  const service = new ReservaService({ repositorio: new ReservaRepositorio([dao]) });
-  const reserva = dao.guardar(reservaEn(3 * HORA));
+  const modelo = crearFakeBookingModel();
+  const service = new ReservaService({ repositorio: new ReservaRepositorio([new BookingAdapter(modelo)]) });
+  const reserva = modelo.agregar(datosBooking({ offsetMs: 3 * HORA }));
 
   let vista = service.confirmarParticipacion('p1', reserva.id);
   assert.strictEqual(vista.participacion.codigo, 'confirmada');
@@ -81,7 +78,7 @@ test('Command: confirmar, declinar y deshacer participación (US35)', () => {
   assert.strictEqual(service.deshacerParticipacion('p1', reserva.id).reserva.participacion.codigo, 'pendiente');
   assert.throws(() => service.deshacerParticipacion('p1', reserva.id), /No hay ninguna acción/);
 
-  const pasada = dao.guardar(reservaEn(-HORA));
+  const pasada = modelo.agregar(datosBooking({ offsetMs: -HORA }));
   assert.throws(() => service.confirmarParticipacion('p1', pasada.id), /ya salió/);
   assert.throws(() => service.confirmarParticipacion('otro', reserva.id), /no existe/);
 

@@ -1,15 +1,16 @@
 // myTrips/demoSeeder.js
 // Genera datos de demostración para el pasajero en sesión, para poder
-// presentar US15, US17, US30, US35 y US37 mientras las HU de creación de
-// solicitudes/reservas/reclamos de otros integrantes se integran.
+// presentar US15, US17, US30, US35 y US37 sin tener que crear rutas y viajes
+// reales con varias cuentas.
 //
-// Todos los registros se marcan con demo: true y se reemplazan cada vez que
-// se vuelve a generar. Los conductores de demo usan datos ficticios.
+// Las solicitudes/reservas se guardan en el modelo de la US14
+// (data/bookings.json) con el mismo formato que createBooking(), más campos
+// opcionales (driverSnapshot, history, price...). Todos se marcan con
+// demo: true, usan rutas ficticias "demo-route-*" y se reemplazan cada vez.
 
-const { SolicitudDAO } = require('../requests/requestDAO');
-const { crearSolicitud, REQUEST_STATUS } = require('../requests/requestModel');
-const { ReservaDAO } = require('../reservations/reservationDAO');
-const { crearReserva, RESERVATION_STATUS, PARTICIPATION_STATUS } = require('../reservations/reservationModel');
+const { v4: uuidv4 } = require('uuid');
+const bookingModel = require('../trips/bookingModel');
+const { PARTICIPATION_STATUS } = require('../reservations/reservationModel');
 const { HistorialParticipacionDAO } = require('../reservations/participationCommands');
 const { ContactoConductorDAO } = require('../drivers/driverContactDAO');
 const { ReclamoDAO } = require('../claims/claimDAO');
@@ -19,6 +20,7 @@ const { CLAIM_STATUS } = require('../claims/claimModel');
 const HORA = 3600 * 1000;
 const DIA = 24 * HORA;
 
+// Conductores ficticios (no son usuarios registrados)
 const CONDUCTORES = {
   carla: { id: 'demo-driver-1', name: 'Carla Mendoza', phone: '900 000 101', email: 'carla.mendoza@demo.moveshare.pe', vehicle: 'Kia Rio gris · ABC-123' },
   jorge: { id: 'demo-driver-2', name: 'Jorge Salas', phone: '900 000 102', email: null, vehicle: 'Toyota Yaris azul · XYZ-789' },
@@ -33,110 +35,103 @@ const RUTAS = {
   regreso: { origin: 'Universidad de Lima, Santiago de Surco', dest: 'Parque Kennedy, Miraflores' },
 };
 
-function rutaEn(ruta, offsetMs) {
+const haceMs = ms => new Date(Date.now() - ms).toISOString();
+
+function snapshotRuta(ruta, offsetMs) {
   const salida = new Date(Date.now() + offsetMs);
   salida.setSeconds(0, 0);
   return {
     ...ruta,
     time: `${String(salida.getHours()).padStart(2, '0')}:${String(salida.getMinutes()).padStart(2, '0')}`,
-    departureAt: salida.toISOString(),
+    expiresAtTimestamp: salida.getTime(),
   };
 }
 
-function haceMs(ms) {
-  return new Date(Date.now() - ms).toISOString();
+/** Booking con el mismo formato que bookingModel.createBooking() + campos opcionales */
+function booking(passengerId, conductor, ruta, offset, extra = {}) {
+  const { id: driverId, ...driverSnapshot } = conductor;
+  return {
+    id: uuidv4(),
+    routeId: `demo-route-${uuidv4().slice(0, 8)}`,
+    driverId,
+    passengerId: String(passengerId),
+    status: 'confirmada',
+    routeSnapshot: snapshotRuta(ruta, offset),
+    createdAt: haceMs(Math.max(DIA, -offset + DIA)),
+    driverSnapshot,
+    price: 8.5,
+    demo: true,
+    ...extra,
+  };
 }
 
 function limpiarDemo(passengerId) {
-  const esDemo = r => r.demo === true && String(r.passengerId) === String(passengerId);
-  const reservaDAO = new ReservaDAO();
-  const idsReservasDemo = new Set(reservaDAO.buscar(esDemo).map(r => r.id));
+  const esDemo = b => b.demo === true && String(b.passengerId) === String(passengerId);
+  const todos = bookingModel.getBookings();
+  const idsDemo = new Set(todos.filter(esDemo).map(b => b.id));
+  if (idsDemo.size && !bookingModel.saveBookings(todos.filter(b => !idsDemo.has(b.id)))) {
+    throw new Error('No se pudieron limpiar los datos de demostración.');
+  }
 
-  new SolicitudDAO().eliminarDonde(esDemo);
-  reservaDAO.eliminarDonde(esDemo);
   new ReclamoDAO().eliminarDonde(esDemo);
-  new HistorialParticipacionDAO().eliminarDonde(r => idsReservasDemo.has(r.reservationId));
+  new HistorialParticipacionDAO().eliminarDonde(r => idsDemo.has(r.reservationId));
   new ContactoConductorDAO().eliminarDonde(c => String(c.passengerId) === String(passengerId) && String(c.driverId).startsWith('demo-driver-'));
 }
 
-function sembrarReservas(passengerId) {
-  const dao = new ReservaDAO();
-  const crear = (conductor, ruta, offset, extra = {}) => {
-    const reserva = crearReserva({
-      passengerId,
-      routeId: `demo-route-${Math.abs(offset)}`,
-      driverId: conductor.id,
-      driver: conductor,
-      route: rutaEn(ruta, offset),
-      price: 8.5,
-      demo: true,
-    });
-    reserva.createdAt = haceMs(Math.max(DIA, -offset + DIA));
-    return dao.guardar({ ...reserva, ...extra });
-  };
+function crearBookings(passengerId) {
+  const b = (...args) => booking(passengerId, ...args);
+  const enviada = (horas) => ({ status: 'pendiente', at: haceMs(horas * HORA), note: 'Solicitud enviada al conductor.' });
 
-  // Próximas (US17 + US35)
-  const proxima = crear(CONDUCTORES.carla, RUTAS.ulima, 3 * HORA);
-  crear(CONDUCTORES.lucia, RUTAS.laMolina, 20 * HORA, {
-    participation: { status: PARTICIPATION_STATUS.CONFIRMED, updatedAt: haceMs(2 * HORA), note: 'Asistencia confirmada por el pasajero.' },
+  const proxima = b(CONDUCTORES.carla, RUTAS.ulima, 3 * HORA, {
+    history: [enviada(5), { status: 'confirmada', at: haceMs(4 * HORA), note: 'El conductor aceptó la solicitud.' }],
   });
-  crear(CONDUCTORES.jorge, RUTAS.sanMiguel, 2 * DIA + 4 * HORA);
+  const completadaCarla = b(CONDUCTORES.carla, RUTAS.ulima, -2 * DIA);
 
-  // Historial: viajes completados (alimentan US30 - conductores frecuentes)
-  const completadaCarla = crear(CONDUCTORES.carla, RUTAS.ulima, -2 * DIA);
-  crear(CONDUCTORES.carla, RUTAS.ulima, -5 * DIA);
-  crear(CONDUCTORES.carla, RUTAS.regreso, -9 * DIA);
-  crear(CONDUCTORES.jorge, RUTAS.sanMiguel, -3 * DIA);
-  crear(CONDUCTORES.jorge, RUTAS.sanMiguel, -7 * DIA);
-  crear(CONDUCTORES.lucia, RUTAS.laMolina, -4 * DIA);
-  crear(CONDUCTORES.lucia, RUTAS.laMolina, -12 * DIA);
-  crear(CONDUCTORES.renzo, RUTAS.regreso, -6 * DIA);
+  const lista = [
+    // US17 / US35: próximas
+    proxima,
+    b(CONDUCTORES.lucia, RUTAS.laMolina, 20 * HORA, {
+      participation: { status: PARTICIPATION_STATUS.CONFIRMED, updatedAt: haceMs(2 * HORA), note: 'Asistencia confirmada por el pasajero.' },
+    }),
+    b(CONDUCTORES.jorge, RUTAS.sanMiguel, 2 * DIA + 4 * HORA),
 
-  // Cancelada
-  crear(CONDUCTORES.jorge, RUTAS.sanMiguel, -1 * DIA, {
-    status: RESERVATION_STATUS.CANCELLED,
-    cancelReason: 'El conductor canceló la ruta por un imprevisto.',
-  });
+    // US17 historial + US30 conductores frecuentes
+    completadaCarla,
+    b(CONDUCTORES.carla, RUTAS.ulima, -5 * DIA),
+    b(CONDUCTORES.carla, RUTAS.regreso, -9 * DIA),
+    b(CONDUCTORES.jorge, RUTAS.sanMiguel, -3 * DIA),
+    b(CONDUCTORES.jorge, RUTAS.sanMiguel, -7 * DIA),
+    b(CONDUCTORES.lucia, RUTAS.laMolina, -4 * DIA),
+    b(CONDUCTORES.lucia, RUTAS.laMolina, -12 * DIA),
+    b(CONDUCTORES.renzo, RUTAS.regreso, -6 * DIA),
 
-  return { proxima, completadaCarla };
+    // Cancelada por el conductor (igual que cancelBookingsByRoute)
+    b(CONDUCTORES.jorge, RUTAS.sanMiguel, -1 * DIA, {
+      status: 'cancelada', cancelledAt: haceMs(30 * HORA), cancelReason: 'El conductor canceló la ruta por un imprevisto.',
+    }),
+
+    // US15: solicitudes en otros estados
+    b(CONDUCTORES.renzo, RUTAS.regreso, 1 * DIA, { status: 'pendiente', message: '¡Hola! ¿Me puedes llevar a Miraflores?', history: [enviada(1)] }),
+    b(CONDUCTORES.jorge, RUTAS.sanMiguel, 6 * HORA, {
+      status: 'rechazada',
+      responseNote: 'Ya no tengo asientos disponibles para esa hora.',
+      history: [enviada(6), { status: 'rechazada', at: haceMs(4 * HORA), note: 'El conductor rechazó la solicitud.' }],
+    }),
+    b(CONDUCTORES.lucia, RUTAS.laMolina, 2 * DIA, {
+      status: 'cancelada', cancelledBy: 'pasajero', cancelledAt: haceMs(2 * HORA), cancelReason: 'Cancelada por el pasajero.',
+      history: [enviada(3), { status: 'cancelada', at: haceMs(2 * HORA), note: 'Cancelada por el pasajero.' }],
+    }),
+    // Pendiente con salida ya pasada: se muestra como "expirada"
+    b(CONDUCTORES.renzo, RUTAS.sanMiguel, -2 * HORA, { status: 'pendiente', history: [enviada(8)] }),
+  ];
+
+  if (!bookingModel.saveBookings([...bookingModel.getBookings(), ...lista])) {
+    throw new Error('No se pudieron guardar los datos de demostración.');
+  }
+  return { completadaCarla };
 }
 
-function sembrarSolicitudes(passengerId, reservaProxima) {
-  const dao = new SolicitudDAO();
-  const crear = (conductor, ruta, offset, estados = [], extra = {}) => {
-    const base = crearSolicitud({
-      passengerId,
-      routeId: `demo-route-req-${Math.abs(offset)}`,
-      driverId: conductor.id,
-      driver: conductor,
-      route: rutaEn(ruta, offset),
-      message: '¡Hola! Voy a la universidad, ¿me puedes llevar?',
-      demo: true,
-    });
-    const creada = haceMs(estados.length * 2 * HORA + HORA);
-    base.createdAt = creada;
-    base.history[0].at = creada;
-    estados.forEach(([status, note], i) => {
-      base.status = status;
-      base.history.push({ status, at: haceMs((estados.length - i) * 2 * HORA), note });
-    });
-    base.updatedAt = base.history[base.history.length - 1].at;
-    return dao.guardar({ ...base, ...extra });
-  };
-
-  crear(CONDUCTORES.renzo, RUTAS.regreso, 1 * DIA);
-  crear(CONDUCTORES.carla, RUTAS.ulima, 3 * HORA, [[REQUEST_STATUS.ACCEPTED, 'El conductor aceptó la solicitud.']], {
-    reservationId: reservaProxima.id,
-  });
-  crear(CONDUCTORES.jorge, RUTAS.sanMiguel, 6 * HORA, [[REQUEST_STATUS.REJECTED, 'El conductor rechazó la solicitud.']], {
-    responseNote: 'Ya no tengo asientos disponibles para esa hora.',
-  });
-  crear(CONDUCTORES.lucia, RUTAS.laMolina, 2 * DIA, [[REQUEST_STATUS.CANCELLED, 'Cancelada por el pasajero.']]);
-  // Pendiente con salida ya pasada: al listar se marca automáticamente como "expirada"
-  crear(CONDUCTORES.renzo, RUTAS.sanMiguel, -2 * HORA);
-}
-
-function sembrarReclamos(passengerId, reservaCompletada) {
+function crearReclamos(passengerId, reservaCompletada) {
   const facade = new ReclamoFacade();
   const dao = new ReclamoDAO();
 
@@ -192,9 +187,8 @@ function sembrarReclamos(passengerId, reservaCompletada) {
 
 function generarDatosDemo(passengerId) {
   limpiarDemo(passengerId);
-  const { proxima, completadaCarla } = sembrarReservas(passengerId);
-  sembrarSolicitudes(passengerId, proxima);
-  sembrarReclamos(passengerId, completadaCarla);
+  const { completadaCarla } = crearBookings(passengerId);
+  crearReclamos(passengerId, completadaCarla);
 }
 
 module.exports = { generarDatosDemo, limpiarDemo };

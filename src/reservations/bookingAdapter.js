@@ -2,34 +2,45 @@
 // ─────────────────────────────────────────────────────────────
 // PATRÓN ADAPTER (Estructural)
 // ─────────────────────────────────────────────────────────────
-// Problema: otro integrante del equipo implementa las reservas de rutas
-// (US14) en src/trips/bookingModel.js con su propia interfaz:
+// Problema: las reservas reales del sistema se guardan con el modelo de la
+// US14 (src/trips/bookingModel.js, data/bookings.json), cuya interfaz es:
 //   getBookingsByPassenger(id), findBookingById(id), getBookings(), saveBookings()
-// y con su propio formato (routeSnapshot, expiresAtTimestamp, sin conductor
-// ni participación).
+// y cuyo formato es distinto (routeSnapshot, expiresAtTimestamp, sin datos
+// del conductor ni de participación).
 //
-// El servicio de reservas (US17/US35) espera la interfaz "Target" de una
-// fuente de reservas:
+// El servicio de reservas (US17/US35) espera la interfaz "Target":
 //   listarPorPasajero(passengerId), buscarDelPasajero(passengerId, id),
 //   actualizar(id, cambios)
 //
 // Solución: BookingAdapter implementa la interfaz esperada y traduce cada
-// llamada hacia bookingModel (Adaptee) sin modificar su código. Así, cuando
-// se mezclen las ramas, las reservas reales aparecerán en "Mis reservas" sin
-// tocar el servicio ni el frontend.
+// llamada hacia bookingModel (Adaptee) sin modificar su código ni crear un
+// segundo modelo de reservas.
 //
 //   Cliente  -> ReservaService
-//   Target   -> fuente de reservas (misma interfaz que ReservaDAO)
+//   Target   -> fuente de reservas
 //   Adapter  -> BookingAdapter
-//   Adaptee  -> src/trips/bookingModel.js (rama de US14)
+//   Adaptee  -> src/trips/bookingModel.js (US14)
 // ─────────────────────────────────────────────────────────────
 
 const { RESERVATION_STATUS, PARTICIPATION_STATUS } = require('./reservationModel');
 
+/**
+ * Un booking es una "reserva" si fue confirmado (aunque luego se cancelara).
+ * Una solicitud pendiente, rechazada o cancelada por el pasajero antes de ser
+ * aceptada no es una reserva: solo se ve en US15.
+ */
+function esReserva(booking) {
+  if (booking.status === RESERVATION_STATUS.CONFIRMED) return true;
+  if (booking.status !== RESERVATION_STATUS.CANCELLED) return false;
+  const historial = Array.isArray(booking.history) ? booking.history : null;
+  const canceloSolicitud = booking.cancelledBy === 'pasajero' && historial && !historial.some(h => h.status === RESERVATION_STATUS.CONFIRMED);
+  return !canceloSolicitud;
+}
+
 class BookingAdapter {
   /**
    * @param {object} bookingModel - módulo src/trips/bookingModel.js
-   * @param {object} [userModel] - para resolver el nombre del conductor
+   * @param {object} [userModel] - para resolver los datos del conductor
    */
   constructor(bookingModel, userModel = null) {
     this.bookingModel = bookingModel;
@@ -38,12 +49,14 @@ class BookingAdapter {
   }
 
   listarPorPasajero(passengerId) {
-    return this.bookingModel.getBookingsByPassenger(passengerId).map(b => this.#aReserva(b));
+    return this.bookingModel.getBookingsByPassenger(passengerId)
+      .filter(esReserva)
+      .map(b => this.#aReserva(b));
   }
 
   buscarDelPasajero(passengerId, reservaId) {
     const booking = this.bookingModel.findBookingById(reservaId);
-    if (!booking || String(booking.passengerId) !== String(passengerId)) return null;
+    if (!booking || String(booking.passengerId) !== String(passengerId) || !esReserva(booking)) return null;
     return this.#aReserva(booking);
   }
 
@@ -65,30 +78,23 @@ class BookingAdapter {
   /** Traducción del formato del Adaptee al formato que espera el cliente */
   #aReserva(booking) {
     const snap = booking.routeSnapshot || {};
-    const conductor = this.#buscarConductor(booking.driverId);
-    const status = booking.status === 'cancelada' ? RESERVATION_STATUS.CANCELLED : RESERVATION_STATUS.CONFIRMED;
+    const conductor = datosConductor(booking, this.userModel);
 
     return {
       id: booking.id,
       passengerId: String(booking.passengerId),
-      requestId: null,
       routeId: booking.routeId,
       driverId: booking.driverId,
-      driver: {
-        name: conductor ? `${conductor.firstName || ''} ${conductor.lastName || ''}`.trim() : 'Conductor MoveShare',
-        phone: conductor?.phone || null,
-        email: conductor?.email || null,
-        vehicle: conductor?.vehicle || null,
-      },
+      driver: conductor,
       route: {
         origin: snap.origin || '',
         dest: snap.dest || '',
         time: snap.time || '',
         departureAt: snap.expiresAtTimestamp ? new Date(snap.expiresAtTimestamp).toISOString() : null,
       },
-      seats: 1,
-      price: null,
-      status,
+      seats: Number(booking.seats) || 1,
+      price: booking.price ?? null,
+      status: booking.status,
       participation: booking.participation || { status: PARTICIPATION_STATUS.PENDING, updatedAt: booking.createdAt, note: null },
       cancelReason: booking.cancelReason || null,
       createdAt: booking.createdAt,
@@ -96,15 +102,24 @@ class BookingAdapter {
       fuente: this.origen,
     };
   }
-
-  #buscarConductor(driverId) {
-    if (!driverId || !this.userModel) return null;
-    try {
-      return this.userModel.findUserById(driverId);
-    } catch {
-      return null;
-    }
-  }
 }
 
-module.exports = { BookingAdapter };
+/**
+ * Datos del conductor: primero el usuario registrado; si no existe, la "foto"
+ * guardada en el booking (driverSnapshot, usada por los datos de demostración).
+ */
+function datosConductor(booking, userModel) {
+  let registrado = null;
+  if (booking.driverId && userModel) {
+    try { registrado = userModel.findUserById(booking.driverId); } catch { registrado = null; }
+  }
+  const snap = booking.driverSnapshot || {};
+  return {
+    name: registrado ? `${registrado.firstName || ''} ${registrado.lastName || ''}`.trim() : snap.name || 'Conductor MoveShare',
+    phone: registrado?.phone || snap.phone || null,
+    email: registrado?.email || snap.email || null,
+    vehicle: registrado?.vehicle || snap.vehicle || null,
+  };
+}
+
+module.exports = { BookingAdapter, datosConductor };

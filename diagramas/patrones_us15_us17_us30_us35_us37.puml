@@ -3,6 +3,8 @@ title MoveShare - Patrones aplicados en US15, US17, US30, US35 y US37
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 
+class "trips/bookingModel (US14 · bookings.json)" as BookingModel <<Adaptee>>
+
 package "shared/persistence" {
   class JsonDataSource <<Singleton>> {
     - {static} instanciaUnica
@@ -19,7 +21,7 @@ package "shared/persistence" {
 
 package "requests (US15)" {
   class SolicitudService
-  class SolicitudDAO
+  class BookingSolicitudAdapter <<Adapter>>
   abstract class EstadoSolicitud <<Producto>>
   class EstadoPendiente
   class EstadoAceptada
@@ -27,8 +29,8 @@ package "requests (US15)" {
   class FabricaEstadoSolicitud <<Factory Method>> {
     + {static} crearEstado(codigo): EstadoSolicitud
   }
-  SolicitudDAO --|> JsonDAO
-  SolicitudService --> SolicitudDAO
+  SolicitudService --> BookingSolicitudAdapter
+  BookingSolicitudAdapter --> BookingModel : traduce
   SolicitudService ..> FabricaEstadoSolicitud
   FabricaEstadoSolicitud ..> EstadoSolicitud : crea
   EstadoPendiente --|> EstadoSolicitud
@@ -39,9 +41,7 @@ package "requests (US15)" {
 package "reservations (US17, US35)" {
   class ReservaService
   class ReservaRepositorio
-  class ReservaDAO
   class BookingAdapter <<Adapter>>
-  class "trips/bookingModel (US14 equipo)" as BookingModel <<Adaptee>>
   class ColeccionReservas <<Aggregate>> {
     + crearIterador(filtro)
   }
@@ -65,9 +65,7 @@ package "reservations (US17, US35)" {
   class DeclinarParticipacionCommand
   class GestorParticipacion <<Receiver>>
 
-  ReservaDAO --|> JsonDAO
   ReservaService --> ReservaRepositorio
-  ReservaRepositorio o--> ReservaDAO
   ReservaRepositorio o--> BookingAdapter
   BookingAdapter --> BookingModel : traduce
   ReservaService ..> ColeccionReservas

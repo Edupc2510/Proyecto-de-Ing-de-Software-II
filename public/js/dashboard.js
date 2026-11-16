@@ -473,11 +473,22 @@ function renderPublishedRoutes() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
           ${route.time}
         </span>
-        <span class="published-route-badge">
+        ${Number(route.seats) === 0
+          ? `<span class="published-route-badge published-route-badge--full">Ruta llena</span>`
+          : `<span class="published-route-badge">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           ${route.seats} asiento${route.seats !== 1 ? 's' : ''}
-        </span>
+        </span>`}
         ${route.notes ? `<span class="published-route-badge">${escapeHTML(route.notes.slice(0, 40))}${route.notes.length > 40 ? '…' : ''}</span>` : ''}
+        <!-- US14: ver los pasajeros que reservaron en esta ruta -->
+        <button
+          type="button"
+          class="published-route-requests"
+          data-route-id="${route.id}"
+        >
+          Ver solicitudes
+          <span class="published-route-requests__count">${Number(route.requestsCount) || 0}</span>
+        </button>
         <button
           type="button"
           class="published-route-cancel"
@@ -494,6 +505,14 @@ function renderPublishedRoutes() {
   button.addEventListener('click', () => {
     const routeId = button.dataset.routeId;
     cancelPublishedRoute(routeId);
+    });
+  });
+
+  container.querySelectorAll('.published-route-requests').forEach(button => {
+    button.addEventListener('click', () => {
+      if (typeof window.openRequestsModal === 'function') {
+        window.openRequestsModal(button.dataset.routeId);
+      }
     });
   });
 
@@ -528,49 +547,48 @@ async function loadDriverPublishedRoutes() {
 
     renderPublishedRoutes();
 
+    // US34: historial de rutas canceladas debajo de "Mis rutas publicadas"
+    if (typeof window.loadCancelledRoutes === 'function') {
+      window.loadCancelledRoutes();
+    }
+
   } catch (error) {
     console.error('[Dashboard] Error cargando rutas publicadas:', error);
     publishedRoutes = [];
     renderPublishedRoutes();
   }
 }
-async function cancelPublishedRoute(routeId) {
-  if (!routeId) {
+/**
+ * US34 - Abre el modal de cancelación (public/js/routeCancel.js), que exige
+ * escribir "CANCELAR" y avisa cuántos pasajeros serán liberados.
+ */
+function cancelPublishedRoute(routeId) {
+  const route = publishedRoutes.find(r => String(r.id) === String(routeId));
+
+  if (!route) {
     alert('No se pudo identificar la ruta a cancelar.');
     return;
   }
 
-  const confirmCancel = confirm('¿Seguro que deseas cancelar esta ruta? Los pasajeros ya no podrán verla.');
-
-  if (!confirmCancel) return;
-
-  try {
-    const res = await fetch(`/trips/${routeId}`, {
-      method: 'DELETE'
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      alert(`⚠️ ${data.error || 'No se pudo cancelar la ruta.'}`);
-      return;
-    }
-
-    publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
-
-    renderPublishedRoutes();
-
-    if (typeof loadPassengerRoutes === 'function') {
-      await loadPassengerRoutes();
-    }
-
-    alert(`✅ ${data.message || 'Ruta cancelada correctamente.'}`);
-
-  } catch (error) {
-    console.error('[Dashboard] Error cancelando ruta:', error);
-    alert('Error de conexión al cancelar la ruta.');
+  if (typeof window.openCancelRouteModal !== 'function') {
+    alert('No se pudo abrir la ventana de cancelación. Recarga la página.');
+    return;
   }
+
+  window.openCancelRouteModal(route);
 }
+
+/**
+ * US34 - Se llama desde routeCancel.js cuando la cancelación fue exitosa.
+ */
+window.onRouteCancelled = async function onRouteCancelled(routeId) {
+  publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
+  renderPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
 function setDriverOriginLocation(addressName, lat, lng) {
   const originLat = Number(lat);
   const originLng = Number(lng);

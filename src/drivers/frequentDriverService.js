@@ -13,11 +13,6 @@ const { DomainError } = require('../shared/httpHelpers');
 
 const MIN_VIAJES_FRECUENTE = 2;
 
-function requireOpcional(ruta) {
-  try { return require(ruta); } catch { return null; }
-}
-const userModel = requireOpcional('../auth/userModel');
-
 class ConductorFrecuenteService {
   constructor({ repositorio = ReservaRepositorio.crearPorDefecto(), contactoDAO = new ContactoConductorDAO() } = {}) {
     this.repositorio = repositorio;
@@ -102,7 +97,8 @@ class ConductorFrecuenteService {
   }
 
   #perfilConductor(id, { reservas, ultima }) {
-    const registrado = userModel ? userModel.findUserById(id) : null;
+    // Los datos del conductor ya vienen resueltos por el BookingAdapter
+    // (usuario registrado o, en su defecto, la foto guardada en el booking).
     const rutas = new Map();
     reservas.forEach(r => {
       const clave = `${r.route.origin} → ${r.route.dest}`;
@@ -112,9 +108,9 @@ class ConductorFrecuenteService {
 
     return {
       id,
-      name: registrado ? `${registrado.firstName || ''} ${registrado.lastName || ''}`.trim() : ultima.driver?.name,
-      phone: registrado?.phone || ultima.driver?.phone || null,
-      email: registrado?.email || ultima.driver?.email || null,
+      name: ultima.driver?.name,
+      phone: ultima.driver?.phone || null,
+      email: ultima.driver?.email || null,
       vehicle: ultima.driver?.vehicle || null,
       viajes: reservas.length,
       ultimoViaje: ultima.route?.departureAt || ultima.createdAt,

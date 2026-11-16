@@ -58,7 +58,7 @@ class EstadoAceptada extends EstadoSolicitud {
   get codigo() { return REQUEST_STATUS.ACCEPTED; }
   get etiqueta() { return 'Aceptada'; }
   get tono() { return 'success'; }
-  descripcion(s) { return `${s.driver.name} aceptó tu solicitud. Revisa la reserva en "Mis reservas".`; }
+  descripcion(s) { return `Tu asiento con ${s.driver.name} está reservado. Revisa el viaje en la pestaña "Reservas".`; }
 }
 
 class EstadoRechazada extends EstadoSolicitud {
@@ -72,7 +72,10 @@ class EstadoCancelada extends EstadoSolicitud {
   get codigo() { return REQUEST_STATUS.CANCELLED; }
   get etiqueta() { return 'Cancelada'; }
   get tono() { return 'neutral'; }
-  descripcion() { return 'Cancelaste esta solicitud.'; }
+  descripcion(s) {
+    if (s.cancelledBy === 'pasajero') return 'Cancelaste esta solicitud.';
+    return s.responseNote ? `El conductor canceló la ruta. Motivo: ${s.responseNote}` : 'El conductor canceló la ruta.';
+  }
 }
 
 class EstadoExpirada extends EstadoSolicitud {

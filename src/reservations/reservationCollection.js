@@ -3,8 +3,8 @@
 // PATRÓN ITERATOR (Comportamiento)
 // ─────────────────────────────────────────────────────────────
 // Problema: el servicio necesita recorrer las reservas del pasajero, pero
-// estas vienen de varias fuentes (reservations.json y, al integrar, la
-// US14 en bookings.json), deben recorrerse filtradas (próximas, historial,
+// estas vienen del modelo de la US14 (bookings.json, vía adapter), deben
+// recorrerse filtradas (próximas, historial,
 // canceladas) y en un orden distinto según la vista. Si el cliente hiciera
 // ese recorrido a mano, quedaría acoplado a la estructura interna.
 //

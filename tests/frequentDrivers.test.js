@@ -6,9 +6,9 @@ const assert = require('node:assert');
 const { FabricaCanalContacto, CanalWhatsApp, normalizarTelefonoPeru } = require('../src/drivers/contactChannels');
 const { ContactoConductorDAO } = require('../src/drivers/driverContactDAO');
 const { ConductorFrecuenteService } = require('../src/drivers/frequentDriverService');
-const { ReservaDAO } = require('../src/reservations/reservationDAO');
 const { ReservaRepositorio } = require('../src/reservations/reservationRepository');
-const { crearReserva } = require('../src/reservations/reservationModel');
+const { BookingAdapter } = require('../src/reservations/bookingAdapter');
+const { crearFakeBookingModel, datosBooking } = require('./helpers/fakeBookingModel');
 
 const DIA = 24 * 3600e3;
 const conductor = { id: 'd1', name: 'Carla', phone: '987 654 321', email: null };
@@ -26,17 +26,16 @@ test('Factory Method + Strategy: cada canal resuelve el contacto a su manera', (
 });
 
 test('US30: solo los conductores con 2+ viajes completados son frecuentes y contactables', () => {
-  const dao = new ReservaDAO();
-  dao.origen = 'moveshare';
-  const viaje = (driver, offset) => dao.guardar(crearReserva({
-    passengerId: 'p1', driverId: driver.id, driver,
-    route: { origin: 'A', dest: 'B', departureAt: new Date(Date.now() + offset).toISOString() },
+  const modelo = crearFakeBookingModel();
+  const viaje = (driver, offset) => modelo.agregar(datosBooking({
+    driverId: driver.id, offsetMs: offset, driverSnapshot: { name: driver.name, phone: driver.phone, email: driver.email },
   }));
   viaje(conductor, -1 * DIA);
   viaje(conductor, -3 * DIA);
   viaje({ id: 'd2', name: 'Jorge', phone: '912345678' }, -2 * DIA);
 
-  const service = new ConductorFrecuenteService({ repositorio: new ReservaRepositorio([dao]), contactoDAO: new ContactoConductorDAO() });
+  const repositorio = new ReservaRepositorio([new BookingAdapter(modelo)]);
+  const service = new ConductorFrecuenteService({ repositorio, contactoDAO: new ContactoConductorDAO() });
   const frecuentes = service.listar('p1');
   assert.strictEqual(frecuentes.length, 1);
   assert.strictEqual(frecuentes[0].viajesCompartidos, 2);
