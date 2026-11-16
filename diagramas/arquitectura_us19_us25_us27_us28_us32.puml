@@ -1,0 +1,80 @@
+@startuml arquitectura_us19_us25_us27_us28_us32
+title Arquitectura por capas - US19, US25, US27, US28 y US32 (MoveShare)
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+rectangle "Presentación (navegador)" as FE {
+  component "dashboard.html + dashboard.js\n+ tripSort.js (orden y refresco 5 s)" as dash
+  component "cuenta.html + cuenta.js\n(US19 perfil · US32 ajustes)" as cuentaUI
+  component "calificaciones.html + calificaciones.js\n(US25)" as calUI
+  component "theme.js + theme.css\n(modo oscuro, US32)" as theme
+}
+
+rectangle "Controladores (Express routes)" as CT {
+  component "/trip-catalog\nTripCatalogController" as ctCat
+  component "/account\nAccountController" as ctAcc
+  component "/ratings/driver/trips\n/ratings/passengers\nPassengerRatingController" as ctRat
+}
+
+rectangle "Lógica de negocio (servicios)" as SV {
+  component "CatalogoViajesService\n+ Strategy + Factory Method" as svCat
+  component "AccountFacade (Facade)\n+ ValidadorPerfil" as svAcc
+  component "CalificacionService" as svRat
+}
+
+rectangle "Adaptadores (DIP)" as AD {
+  component "RutaFuenteAdapter" as adRuta
+  component "CalificacionConductorAdapter" as adCond
+  component "UsuarioRepositorioAdapter" as adUser
+  component "ReservaViajeAdapter" as adRes
+}
+
+rectangle "Persistencia (DAO + Singleton)" as DA {
+  component "PerfilDAO · AjustesDAO\nCalificacionPasajeroDAO" as dao
+  component "JsonDataSource (Singleton)" as ds
+}
+
+rectangle "Código existente del equipo (no se modifica su lógica)" as EX #EEEEEE {
+  component "trips/routeModel" as exRoute
+  component "trips/bookingModel (US14)" as exBook
+  component "ratings/ratingModel (US24)" as exRat
+  component "auth/userModel" as exUser
+}
+
+database "data/*.json\nuser_profiles · user_settings · ratings" as files
+
+dash --> ctCat
+cuentaUI --> ctAcc
+calUI --> ctRat
+theme ..> ctAcc : GET /account/settings
+
+ctCat --> svCat
+ctAcc --> svAcc
+ctRat --> svRat
+
+svCat --> adRuta
+svCat --> adCond
+svCat --> adUser
+svCat ..> svAcc : estaVisible()
+svAcc --> adUser
+svAcc --> dao
+svRat --> adRes
+svRat --> adUser
+svRat --> dao
+
+adRuta --> exRoute
+adCond --> exRat
+adUser --> exUser
+adRes --> exBook
+
+dao --> ds
+ds --> files
+
+note right of svAcc
+  Políticas consultadas por otros módulos:
+  - catálogo y /trips: cuenta pausada
+  - joinRoute: no recibe solicitudes
+  - routeMatchingService (US31): alertas apagadas
+end note
+@enduml
