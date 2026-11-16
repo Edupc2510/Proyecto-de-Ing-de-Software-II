@@ -1,0 +1,282 @@
+/* ============================================================
+   driverRequests.css — US14 Visualizar solicitudes de viaje
+   Botón "Ver solicitudes" en las rutas del conductor y modal
+   con la lista de pasajeros.
+   ============================================================ */
+
+/* ── Botón en la tarjeta de ruta publicada ── */
+.published-route-requests {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(4, 41, 64, 0.16);
+  background: var(--c-white);
+  color: var(--c-midnight-route);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.published-route-requests:hover {
+  background: rgba(219, 242, 39, 0.22);
+  border-color: rgba(169, 191, 4, 0.45);
+}
+
+.published-route-requests__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--c-midnight-route);
+  color: var(--c-white);
+  font-size: 0.7rem;
+  display: inline-grid;
+  place-items: center;
+}
+
+.published-route-badge--full {
+  background: #fff4e5;
+  border-color: #f8d8a8;
+  color: #9a5b00;
+}
+
+/* ── Modal ── */
+.requests-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 41, 64, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.requests-modal-overlay[hidden] {
+  display: none;
+}
+
+.requests-modal {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  background: var(--c-white);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  font-family: var(--font-body);
+}
+
+.requests-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--c-midnight-route), var(--c-deep-flow));
+  color: var(--c-white);
+}
+
+.requests-modal__header h2 {
+  margin: 0;
+  color: var(--c-white); /* main.css pinta los h2 de azul oscuro */
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+
+.requests-modal__header p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.requests-modal__close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--c-white);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.requests-modal__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface-soft);
+}
+
+.requests-modal__summary {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-urban-mist);
+}
+
+.requests-modal__refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--c-border);
+  background: var(--c-white);
+  color: var(--c-midnight-route);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.requests-modal__refresh:hover {
+  border-color: var(--c-midnight-route);
+}
+
+.requests-modal__body {
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+.requests-modal__hint {
+  margin: 0;
+  padding: 10px 24px 16px;
+  font-size: 0.75rem;
+  color: var(--c-text-soft);
+  text-align: center;
+}
+
+/* ── Estados: cargando / vacío / error ── */
+.requests-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 8px;
+  text-align: center;
+  color: var(--c-midnight-route);
+  font-size: 0.9rem;
+}
+
+.requests-state p {
+  margin: 0;
+}
+
+.requests-state__icon {
+  font-size: 2rem;
+}
+
+.requests-state__sub {
+  color: var(--c-urban-mist);
+  font-size: 0.82rem;
+}
+
+.requests-state--error {
+  color: var(--c-error);
+}
+
+/* ── Lista de solicitudes ── */
+.requests-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  background: var(--c-white);
+}
+
+.request-item--new {
+  border-color: rgba(169, 191, 4, 0.6);
+  background: rgba(219, 242, 39, 0.12);
+  animation: requestPulse 1.2s ease 2;
+}
+
+.request-item--cancelled {
+  opacity: 0.6;
+}
+
+@keyframes requestPulse {
+  50% { box-shadow: 0 0 0 4px rgba(219, 242, 39, 0.35); }
+}
+
+.request-item__avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--c-share-pulse), var(--c-connected-leaf));
+  color: var(--c-midnight-route);
+  font-weight: 800;
+}
+
+.request-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.request-item__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--c-midnight-route);
+}
+
+.request-item__new-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--c-share-pulse);
+  color: var(--c-midnight-route);
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.request-item__meta {
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: var(--c-urban-mist);
+  overflow-wrap: anywhere;
+}
+
+.request-status {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.request-status--confirmada {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+  border: 1px solid var(--c-success-border);
+}
+
+.request-status--cancelada {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
+}
