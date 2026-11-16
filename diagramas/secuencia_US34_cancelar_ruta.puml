@@ -1,0 +1,55 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+skinparam sequenceMessageAlign center
+title US34 - Cancelar ruta publicada (con patrones Observer y Factory)
+
+actor Conductor
+participant "routeCancel.js\n(ventana de cancelación)" as UI
+participant "routeRoutes.js\n+ requireApiAuth" as RR
+participant "routeController\n.cancelPublishedRoute()" as RC
+participant "routeModel" as RM
+participant "bookingModel" as BM
+participant "tripEvents\n(TripEventBus)" as BUS
+participant "notificationSubscriber" as NS
+participant "NotificationFactory" as NF
+participant "notificationModel" as NM
+participant "reliabilitySubscriber" as RS
+participant "driverReliabilityModel" as DR
+
+Conductor -> UI : Toca "Cancelar ruta"
+UI -> UI : openCancelRouteModal(route)\nmuestra impacto y aviso de cancelación tardía
+Conductor -> UI : Escribe motivo y "CANCELAR"
+UI -> RR : DELETE /trips/:routeId\n{ confirmation, reason }
+RR -> RR : requireApiAuth(req)
+alt sin sesión
+  RR --> UI : 401 "Debes iniciar sesión."
+end
+RR -> RC : cancelPublishedRoute(req, res)
+alt confirmation != "CANCELAR"
+  RC --> UI : 400 "Para confirmar debes escribir la palabra CANCELAR."
+end
+RC -> RM : getRoutes()
+RM --> RC : routes
+alt no es el conductor dueño
+  RC --> UI : 403 "No tienes permiso para cancelar esta ruta."
+else ruta ya cancelada
+  RC --> UI : 409 "Esta ruta ya fue cancelada."
+end
+RC -> RM : saveRoutes(routes con status = "cancelada")
+RC -> BM : cancelBookingsByRoute(routeId, reason)
+BM --> RC : cancelledBookings
+RC -> BUS : publish(ROUTE_CANCELLED, {route, driverId,\ncancelledBookings, reason, cancelledAt})
+BUS -> NS : handler(payload)
+loop por cada reserva cancelada
+  NS -> NF : crear(ROUTE_CANCELLED, {route, booking, reason})
+  NF --> NS : aviso (prioridad alta)
+end
+NS -> NM : createNotifications(avisos)
+BUS -> RS : handler(payload)
+alt hay pasajeros y faltan < 15 min
+  RS -> DR : addStrike({driverId, routeId, ...})
+end
+RC --> UI : 200 "Ruta cancelada. Se notificó a N pasajero(s)."
+UI -> UI : onRouteCancelled(routeId)\nloadCancelledRoutes()
+UI --> Conductor : Ruta en "Rutas canceladas"
+@enduml

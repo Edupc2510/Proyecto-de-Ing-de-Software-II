@@ -32,6 +32,10 @@ let selectedRouteIdForBooking = null;
 
 // Rutas publicadas durante la sesión actual del conductor
 let publishedRoutes = [];
+
+// US27/US28: firma de la última lista pintada (si no cambió no se repinta) y ubicación en caché
+let lastPassengerRoutesSignature = null;
+let passengerLocationPromise = null;
 // ─────────────────────────────────────────────────────────────
 // INICIALIZACIÓN
 // ─────────────────────────────────────────────────────────────
@@ -168,6 +172,7 @@ function showScreen(name) {
  */
 function goToRoleSelection() {
   currentRole = null;
+  TripSortControl.stopAutoRefresh();
 
   // Ocultar badge de rol
   const badge = document.getElementById('role-badge');
@@ -199,6 +204,7 @@ function selectRole(role) {
     showScreen('passenger');
 
     loadPassengerRoutes();
+    TripSortControl.startAutoRefresh(loadPassengerRoutes); // US28 esc.04: asientos en tiempo casi real
     // Inicializar mapa después de que el DOM esté visible
     requestAnimationFrame(() => {
       setTimeout(() => initPassengerMap(), 100);
@@ -478,13 +484,33 @@ function renderPublishedRoutes() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
           ${route.time}
         </span>
-        <span class="published-route-badge">
+        ${Number(route.seats) === 0
+          ? `<span class="published-route-badge published-route-badge--full">Ruta llena</span>`
+          : `<span class="published-route-badge">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           ${route.seats} asiento${route.seats !== 1 ? 's' : ''}
-        </span>
+        </span>`}
         ${route.notes ? `<span class="published-route-badge">${escapeHTML(route.notes.slice(0, 40))}${route.notes.length > 40 ? '…' : ''}</span>` : ''}
         <button type="button" class="btn btn--ghost btn--sm published-route-details" data-route-id="${escapeHTML(route.id)}">Editar detalles</button>
         <a class="btn btn--ghost btn--sm" href="/reports/new?routeId=${encodeURIComponent(route.id)}">Reportar</a>
+        <!-- US14: ver los pasajeros que reservaron en esta ruta -->
+        <button
+          type="button"
+          class="published-route-requests"
+          data-route-id="${route.id}"
+        >
+          Ver solicitudes
+          <span class="published-route-requests__count">${Number(route.requestsCount) || 0}</span>
+        </button>
+        <!-- US33: editar la ruta publicada -->
+        <button
+          type="button"
+          class="published-route-edit"
+          data-route-id="${route.id}"
+          style="display:inline-flex; align-items:center; border:1px solid rgba(4,41,64,0.16); background:var(--c-white); color:var(--c-midnight-route); font-size:0.75rem; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer;"
+        >
+          Editar
+        </button>
         <button
           type="button"
           class="published-route-cancel"
@@ -507,6 +533,23 @@ function renderPublishedRoutes() {
   button.addEventListener('click', () => {
     const routeId = button.dataset.routeId;
     cancelPublishedRoute(routeId);
+    });
+  });
+
+  // US33: editar una ruta publicada
+  container.querySelectorAll('.published-route-edit').forEach(button => {
+    button.addEventListener('click', () => {
+      if (typeof window.openEditRouteModal === 'function') {
+        window.openEditRouteModal(button.dataset.routeId);
+      }
+    });
+  });
+
+  container.querySelectorAll('.published-route-requests').forEach(button => {
+    button.addEventListener('click', () => {
+      if (typeof window.openRequestsModal === 'function') {
+        window.openRequestsModal(button.dataset.routeId);
+      }
     });
   });
 
@@ -541,62 +584,60 @@ async function loadDriverPublishedRoutes() {
 
     renderPublishedRoutes();
 
+    // US34: historial de rutas canceladas debajo de "Mis rutas publicadas"
+    if (typeof window.loadCancelledRoutes === 'function') {
+      window.loadCancelledRoutes();
+    }
+
   } catch (error) {
     console.error('[Dashboard] Error cargando rutas publicadas:', error);
     publishedRoutes = [];
     renderPublishedRoutes();
   }
 }
-async function cancelPublishedRoute(routeId) {
-  if (!routeId) {
+/**
+ * US34 - Abre el modal de cancelación (public/js/routeCancel.js), que exige
+ * escribir "CANCELAR" y avisa cuántos pasajeros serán liberados.
+ */
+function cancelPublishedRoute(routeId) {
+  const route = publishedRoutes.find(r => String(r.id) === String(routeId));
+
+  if (!route) {
     alert('No se pudo identificar la ruta a cancelar.');
     return;
   }
 
-  // US34 - Confirmación de seguridad: el conductor debe escribir "CANCELAR"
-  const confirmation = prompt(
-    'Vas a cancelar esta ruta. Los pasajeros con reserva serán liberados y notificados.\n\n' +
-    'Para confirmar, escribe CANCELAR:'
-  );
-
-  if (confirmation === null) return; // El conductor cerró la ventana
-
-  if (confirmation.trim() !== 'CANCELAR') {
-    alert('⚠️ No se canceló la ruta. Debes escribir exactamente la palabra CANCELAR.');
+  if (typeof window.openCancelRouteModal !== 'function') {
+    alert('No se pudo abrir la ventana de cancelación. Recarga la página.');
     return;
   }
 
-  const reason = prompt('Motivo de la cancelación (opcional):') || '';
-
-  try {
-    const res = await fetch(`/trips/${routeId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmation: confirmation.trim(), reason: reason.trim() })
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      alert(`⚠️ ${data.error || 'No se pudo cancelar la ruta.'}`);
-      return;
-    }
-
-    publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
-
-    renderPublishedRoutes();
-
-    if (typeof loadPassengerRoutes === 'function') {
-      await loadPassengerRoutes();
-    }
-
-    alert(`✅ ${data.message || 'Ruta cancelada correctamente.'}`);
-
-  } catch (error) {
-    console.error('[Dashboard] Error cancelando ruta:', error);
-    alert('Error de conexión al cancelar la ruta.');
-  }
+  window.openCancelRouteModal(route);
 }
+
+/**
+ * US34 - Se llama desde routeCancel.js cuando la cancelación fue exitosa.
+ */
+window.onRouteCancelled = async function onRouteCancelled(routeId) {
+  publishedRoutes = publishedRoutes.filter(route => String(route.id) !== String(routeId));
+  renderPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
+/**
+ * US33 - Se llama desde routeEditor.js cuando se guardaron los cambios.
+ * Escenario 01: actualiza la tarjeta del conductor y el buscador de pasajeros.
+ */
+window.onRouteEdited = async function onRouteEdited() {
+  await loadDriverPublishedRoutes();
+
+  if (typeof loadPassengerRoutes === 'function') {
+    await loadPassengerRoutes();
+  }
+};
+
 function setDriverOriginLocation(addressName, lat, lng) {
   const originLat = Number(lat);
   const originLng = Number(lng);
@@ -984,17 +1025,25 @@ async function loadPassengerRoutes() {
   const requestNumber = ++passengerRequestNumber;
   const filters = typeof getTripFilterQuery === 'function' ? getTripFilterQuery() : '';
   try {
-    const res = await fetch(`/trips${filters ? '?' + filters : ''}`);
-    const routes = await res.json();
+    const catalogUrl = TripSortControl.catalogUrl();
+    const res = await fetch(`${catalogUrl}${filters ? (catalogUrl.includes('?') ? '&' : '?') + filters : ''}`);
+    const catalog = await res.json();
     if (requestNumber !== passengerRequestNumber) return;
-    if (!res.ok) throw new Error(routes.error || 'No se pudieron cargar las rutas disponibles.');
+    if (!res.ok) throw new Error(catalog.error || 'No se pudieron cargar las rutas disponibles.');
+    const routes = catalog.viajes;
+    TripSortControl.render(catalog.ordenes, catalog.orden);
     const routesContainer = document.getElementById('dynamic-passenger-routes');
     if (!routesContainer) return;
 
     if (!Array.isArray(routes) || routes.length === 0) {
+      lastPassengerRoutesSignature = null;
       routesContainer.textContent = filters ? 'No hay viajes que coincidan con tus filtros. Puedes cambiarlos o limpiarlos.' : 'No hay rutas disponibles por el momento.';
       return;
     }
+
+    // US28 esc.04: el refresco automático solo repinta si cambió el orden o los asientos
+    const signature = JSON.stringify(routes);
+    if (signature === lastPassengerRoutesSignature) return;
 
     const getUserLocation = () => new Promise(resolve => {
       const defaultLocation = [-12.046374, -77.042793]; // Lima centro como respaldo
@@ -1028,9 +1077,11 @@ async function loadPassengerRoutes() {
       return [-12.0916, -77.0353];
     };
 
-    const [userLat, userLng] = await getUserLocation();
+    passengerLocationPromise = passengerLocationPromise || getUserLocation();
+    const [userLat, userLng] = await passengerLocationPromise;
     if (requestNumber !== passengerRequestNumber) return;
 
+    lastPassengerRoutesSignature = signature;
     routesContainer.innerHTML = routes.map((route, index) => {
       const driverOriginCoords = getRouteOriginCoords(route);
 
@@ -1039,7 +1090,7 @@ async function loadPassengerRoutes() {
       const distanceKM = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111;
 
       return `
-        <div class="route-card" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
+        <div class="route-card${route.agotado ? ' route-card--soldout' : ''}" style="margin-bottom: var(--space-sm); padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: white;">
           <div class="route-card__stops">
             <div class="route-stop route-stop--origin">
               <div class="route-stop__dot route-stop__dot--origin"></div>
@@ -1063,7 +1114,10 @@ async function loadPassengerRoutes() {
           <div class="route-card__meta" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
             <div>
               <span class="route-meta-chip">🕒 ${escapeHTML(route.time || '')}</span>
-              <span class="route-meta-chip">💺 ${route.seats} asist.</span>
+              ${route.agotado
+                ? '<span class="route-meta-chip route-meta-chip--soldout">Agotado</span>'
+                : `<span class="route-meta-chip">💺 ${route.seats} asist.</span>`}
+              ${route.driverRating && route.driverRating.average ? `<span class="route-meta-chip">⭐ ${route.driverRating.average}</span>` : ''}
             </div>
 
             <button 
@@ -1071,6 +1125,7 @@ async function loadPassengerRoutes() {
               class="btn btn--primary btn--sm btn-select-route" 
               data-route-index="${index}" 
               style="padding: 6px 16px; font-size: 12px;"
+              ${route.agotado ? 'disabled' : ''}
             >
               Seleccionar
             </button>
@@ -1114,6 +1169,7 @@ async function loadPassengerRoutes() {
   } catch (err) {
     if (requestNumber !== passengerRequestNumber) return;
     console.error('[Dashboard] Error cargando rutas:', err);
+    lastPassengerRoutesSignature = null;
 
     const routesContainer = document.getElementById('dynamic-passenger-routes');
 
@@ -1207,6 +1263,9 @@ function openRouteModal(routeId, origin, destination, time, seats, driverLat, dr
       .bindPopup('Punto de encuentro')
       .openPopup();
 
+    // US21: el pasajero elige su punto de recojo con un clic en el mapa
+    if (window.PickupSelector) PickupSelector.attach(modalMapInstance);
+
     // Forzamos render inicial del mapa.
     modalMapInstance.invalidateSize();
 
@@ -1281,6 +1340,8 @@ function closeRouteModal() {
   }
 
   selectedRouteIdForBooking = null;
+  // US21: limpiar el punto de recojo seleccionado
+  if (window.PickupSelector) PickupSelector.reset();
   // Cancela cualquier intento pendiente de dibujar la ruta del modal
   modalRouteRequestId++;
   // La línea se destruye junto con el mapa, pero limpiamos la referencia
@@ -1318,10 +1379,24 @@ async function confirmFinalBooking(routeId) {
       confirmButton.textContent = 'Confirmando...';
     }
 
+    // US21 - Escenario 03: sin internet no se permite guardar el punto
+    if (!navigator.onLine) {
+      alert('Sin conexi\u00f3n a internet. No se puede guardar el punto de recojo.');
+      return;
+    }
+
+    // US21 - Escenario 01: el pasajero debe elegir un punto antes de confirmar
+    const pickupPoint = window.PickupSelector ? PickupSelector.getSelection() : null;
+
+    if (!pickupPoint) {
+      alert('Selecciona tu punto de recojo en el mapa antes de confirmar.');
+      return;
+    }
+
     const res = await fetch('/trips/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ routeId })
+      body: JSON.stringify({ routeId, pickupPoint })
     });
 
     const data = await res.json().catch(() => ({}));
@@ -1335,6 +1410,9 @@ async function confirmFinalBooking(routeId) {
 
     closeRouteModal();
     await loadPassengerRoutes();
+
+    // US23 - Escenario 05: el nuevo viaje aparece en el historial
+    if (window.TripHistory) TripHistory.refresh();
 
   } catch (err) {
     console.error('[Dashboard] Error al confirmar reserva:', err);

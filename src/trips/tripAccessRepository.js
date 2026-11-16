@@ -38,7 +38,8 @@ class TripAccessRepository {
   }
 
   hasReservations(route) {
-    if (Number.isInteger(route.initialSeats) && route.seats < route.initialSeats) return true;
+    const capacity = Number.isInteger(route.totalSeats) ? route.totalSeats : route.initialSeats;
+    if (Number.isInteger(capacity) && route.seats < capacity) return true;
     if (this.read('bookings.json').some(row => String(row.routeId) === String(route.id) && row.status === 'confirmada')) return true;
     return false;
   }

@@ -16,6 +16,10 @@ const {
     reactivateRoute,
     getRouteRequests
 } = require('./routeController');
+// US23 - Historial de viajes del pasajero
+const { getMyTripHistory } = require('./tripHistoryController');
+// US33 - Editar ruta publicada
+const { getRouteForEdit, editPublishedRoute } = require('./routeEditController');
 
 // Obtener todas las rutas
 router.get('/', getAllRoutes);
@@ -27,14 +31,20 @@ router.post('/join', joinRoute);
 // Rutas publicadas por el conductor en sesión
 // (deben ir antes de '/:routeId' para que "mine" no se tome como un ID)
 router.get('/mine', getMyPublishedRoutes);
+// US23 - Historial de viajes del pasajero (antes de '/:routeId')
+router.get('/history', getMyTripHistory);
 // US34 - Historial de rutas canceladas del conductor
 router.get('/mine/cancelled', getMyCancelledRoutes);
+// US33 - Datos para editar una ruta (bloqueado a menos de 30 min)
+router.get('/:routeId/edit', getRouteForEdit);
 // US14 - Solicitudes de pasajeros de una ruta
 router.get('/:routeId/requests', getRouteRequests);
 // US34 - Intento de reactivar una ruta cancelada (siempre bloqueado)
 router.post('/:routeId/reactivate', reactivateRoute);
 // US31 - Detalle de un viaje (al abrir una notificación de coincidencia)
 router.get('/:routeId', getRouteById);
+// US33 - Guardar cambios de una ruta publicada
+router.put('/:routeId', editPublishedRoute);
 // US34 - Cancelar ruta
 router.delete('/:routeId', cancelPublishedRoute);
 

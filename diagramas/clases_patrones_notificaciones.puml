@@ -1,0 +1,73 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+skinparam classAttributeIconSize 0
+title Patrones Observer y Factory - eventos de viaje y notificaciones (US14, US31, US34)
+
+package "shared/events" {
+  class TripEventBus <<Sujeto>> {
+    - observers : Map<string, Observador[]>
+    + subscribe(event : string, name : string, handler : Function) : void
+    + publish(event : string, payload : Object) : void
+    + countObservers(event : string) : number
+  }
+  enum TRIP_EVENTS {
+    ROUTE_PUBLISHED = "ruta_publicada"
+    BOOKING_CREATED = "reserva_creada"
+    ROUTE_CANCELLED = "ruta_cancelada"
+  }
+  class registerTripSubscribers <<función>> {
+    + registerTripSubscribers(bus) : TripEventBus
+  }
+}
+
+package "trips" {
+  class routeController <<controlador>> {
+    + publishRoute(req, res)
+    + joinRoute(req, res)
+    + cancelPublishedRoute(req, res)
+  }
+  class reliabilitySubscriber <<Observador>> {
+    + registerReliabilityObserver(bus) : void
+  }
+  class driverReliabilityModel {
+    + LATE_CANCELLATION_MINUTES : number = 15
+    + addStrike(data) : Object
+  }
+}
+
+package "notifications" {
+  class notificationSubscriber <<Observador>> {
+    + registerNotificationObserver(bus) : void
+  }
+  class NotificationFactory <<Factory>> {
+    - creators : Map<tipo, Function>
+    + crear(type : string, data : Object) : Notificacion
+  }
+  class routeMatchingService <<Facade>> {
+    + distanceKm(a, b) : number
+    + isTimeInRange(time, from, to) : boolean
+    + routeMatchesAlert(route, alert) : boolean
+    + notifyMatchingAlertsForRoute(route) : number
+  }
+  class notificationModel {
+    + NOTIFICATION_TYPES
+    + PRIORITY
+    + createNotification(item)
+    + createNotifications(items)
+    + addRouteMatchNotifications(matches)
+  }
+}
+
+routeController ..> TripEventBus : publish(evento)
+routeController ..> TRIP_EVENTS
+TripEventBus "1" o-- "0..*" notificationSubscriber : notifica >
+TripEventBus "1" o-- "0..*" reliabilitySubscriber : notifica >
+registerTripSubscribers ..> notificationSubscriber : registra
+registerTripSubscribers ..> reliabilitySubscriber : registra
+notificationSubscriber ..> NotificationFactory : crear()
+notificationSubscriber ..> notificationModel : guarda avisos
+notificationSubscriber ..> routeMatchingService : coincidencias US31
+routeMatchingService ..> NotificationFactory : crear(ROUTE_MATCH)
+reliabilitySubscriber ..> driverReliabilityModel : addStrike()
+NotificationFactory ..> notificationModel : usa tipos y prioridades
+@enduml

@@ -16,9 +16,23 @@ const notificationRoutes = require('./src/notifications/notificationRoutes');
 const { createPasswordResetRouter } = require('./src/auth/passwordResetRoutes');
 const { expireChangedPasswordSession } = require('./src/auth/passwordSession');
 const { createReportRouter } = require('./src/reports/reportRoutes');
+const favoriteDriverRoutes = require('./src/drivers/favoriteDriverRoutes');
+// Sprint 2-4 · US19, US25, US27, US28, US32
+const tripCatalogRoutes = require('./src/tripCatalog/tripCatalogRoutes');
+const accountRoutes = require('./src/account/accountRoutes');
+const ratingRoutes = require('./src/ratings/ratingRoutes');
+// Sprint 2-4 · Eduardo (US15, US17, US30, US35, US37)
+const requestRoutes = require('./src/requests/requestRoutes');
+const reservationRoutes = require('./src/reservations/reservationRoutes');
+const frequentDriverRoutes = require('./src/drivers/frequentDriverRoutes');
+const claimRoutes = require('./src/claims/claimRoutes');
+const myTripsRoutes = require('./src/myTrips/myTripsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Patrón Observer: conecta notificaciones y fiabilidad con los eventos de viaje (US14, US31, US34)
+require('./src/shared/events/registerTripSubscribers')();
 
 // ─────────────────────────────────────────────────────────────
 // MIDDLEWARE GLOBAL
@@ -49,8 +63,19 @@ app.use('/auth', createPasswordResetRouter());
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/trips', routeRoutes);
-app.use('/ratings', driverRatingRoutes);
-app.use('/notifications', notificationRoutes);
+app.use('/ratings', driverRatingRoutes);       // US24 - Calificar conductor
+app.use('/notifications', notificationRoutes); // US31 - Alertas y notificaciones
+app.use('/favorite-drivers', favoriteDriverRoutes); // US29 - Conductores frecuentes
+// Sprint 2-4 · US19, US25, US27, US28, US32
+app.use('/trip-catalog', tripCatalogRoutes);  // US27 / US28 - Ordenar viajes por horario y por asientos
+app.use('/account', accountRoutes);           // US19 - Editar perfil · US32 - Gestión avanzada de cuenta
+app.use('/ratings', ratingRoutes);            // US25 - Calificar pasajero (convive con US24 en /ratings)
+// Sprint 2-4 · Eduardo (US15, US17, US30, US35, US37)
+app.use('/requests', requestRoutes);            // US15 - Estado de solicitudes
+app.use('/reservations', reservationRoutes);    // US17 - Reservas · US35 - Confirmar participación
+app.use('/frequent-drivers', frequentDriverRoutes); // US30 - Contactar conductores frecuentes
+app.use('/claims', claimRoutes);                // US37 - Estado del reclamo
+app.use('/mis-viajes', myTripsRoutes);          // Vista "Mis viajes" del pasajero
 app.use('/reports', createReportRouter());
 // Página principal (login/registro)
 // Landing page principal

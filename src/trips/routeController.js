@@ -14,18 +14,18 @@ const {
     getBookingsByRoute,
     cancelBookingsByRoute
 } = require('./bookingModel');
-const { LATE_CANCELLATION_MINUTES, addStrike } = require('./driverReliabilityModel');
 const { findUserById } = require('../auth/userModel');
-const {
-    createNotification,
-    createNotifications,
-    NOTIFICATION_TYPES,
-    PRIORITY
-} = require('../notifications/notificationModel');
-const { notifyMatchingAlertsForRoute } = require('../notifications/routeMatchingService');
+// Patrón Observer: el controlador solo anuncia lo que pasó; las notificaciones (US14, US31, US34)
+// y los strikes (US34) los manejan los observadores registrados en src/shared/events.
+const { tripEvents, TRIP_EVENTS } = require('../shared/events/tripEvents');
 const { getDriverRatingSummary } = require('../ratings/ratingModel');
 const { parseRouteFilters, filterRoutes } = require('./routeFilters');
-const { validateNotes } = require('./tripDetails');
+const { validateNotes } = require('./tripNotes');
+const { validatePickupPoint } = require('./pickupValidator');
+const { AccountFacade } = require('../account/accountFacade');
+
+// US32: política de cuenta (una cuenta pausada no aparece en búsquedas ni recibe solicitudes)
+const cuentas = AccountFacade.crearPorDefecto();
 
 // Palabra que el conductor debe escribir para confirmar la cancelación (US34 - Escenario 03)
 const CANCEL_CONFIRMATION_WORD = 'CANCELAR';
@@ -33,7 +33,6 @@ const CANCEL_CONFIRMATION_WORD = 'CANCELAR';
 const getFullName = (user) =>
     user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
 
-const shortPlace = (text) => String(text || '').split(',')[0].trim();
 
 /**
  * Elimina del JSON solo las rutas vencidas que no están canceladas.
@@ -64,6 +63,7 @@ const getAllRoutes = (req, res) => {
         // 3. FILTRAR: solo rutas vigentes, con asientos y NO canceladas (US34)
         const validRoutes = storedRoutes
             .filter(route => isRouteActive(route, ahora))
+            .filter(route => cuentas.estaVisible(route.driverId)) // US32: cuenta pausada
             .map(route => {
                 const driver = route.driverId ? findUserById(route.driverId) : null;
                 return {
@@ -204,6 +204,7 @@ const publishRoute = (req, res) => {
             destCoords: [destLat, destLng],
             seats,
             initialSeats: seats,
+            totalSeats: seats,
             time,
             notes,
             expiresAtTimestamp: expiresAt.getTime(),
@@ -219,13 +220,12 @@ const publishRoute = (req, res) => {
             throw new Error("No se pudo guardar la ruta en el archivo JSON.");
         }
 
-        // US31: avisar a los pasajeros cuya ruta habitual coincide con la nueva ruta
-        const matchedPassengers = notifyMatchingAlertsForRoute(newRoute);
+        // US31: anunciar la nueva ruta (el observador de notificaciones busca coincidencias)
+        tripEvents.publish(TRIP_EVENTS.ROUTE_PUBLISHED, { route: newRoute });
 
         return res.status(201).json({
             message: "Ruta publicada correctamente",
-            route: newRoute,
-            matchedPassengers
+            route: newRoute
         });
 
     } catch (error) {
@@ -279,6 +279,13 @@ const joinRoute = (req, res) => {
             });
         }
 
+        // US32: un conductor con la cuenta pausada no recibe solicitudes
+        if (route.driverId && !cuentas.puedeRecibirSolicitudes(route.driverId)) {
+            return res.status(409).json({
+                error: "El conductor pausó su cuenta y no recibe solicitudes por ahora."
+            });
+        }
+
         const alreadyBooked = getBookingsByRoute(route.id).some(booking =>
             booking.passengerId === String(passengerId) &&
             booking.status === BOOKING_STATUS.CONFIRMED
@@ -309,6 +316,21 @@ const joinRoute = (req, res) => {
             });
         }
 
+        // US21: validar el punto de recojo elegido por el pasajero (si lo envia)
+        let pickupPoint = null;
+
+        if (req.body?.pickupPoint) {
+            const pickupResult = validatePickupPoint(req.body.pickupPoint, route);
+
+            if (!pickupResult.valid) {
+                return res.status(pickupResult.status).json({
+                    error: pickupResult.error
+                });
+            }
+
+            pickupPoint = pickupResult.pickupPoint;
+        }
+
         // Restar un asiento de forma segura
         const remainingSeats = currentSeats - 1;
 
@@ -325,18 +347,14 @@ const joinRoute = (req, res) => {
         }
 
         // US14: registrar la solicitud del pasajero para que el conductor la vea
-        const booking = createBooking({ route, passengerId });
+        const booking = createBooking({ route, passengerId, pickupPoint });
 
-        if (route.driverId) {
-            const passenger = findUserById(passengerId);
-            createNotification({
-                userId: route.driverId,
-                type: NOTIFICATION_TYPES.NEW_REQUEST,
-                title: 'Nueva solicitud de viaje',
-                message: `${getFullName(passenger) || 'Un pasajero'} reservó un asiento en tu ruta ${shortPlace(route.origin)} → ${shortPlace(route.dest)} (${route.time}).`,
-                routeId: route.id
-            });
-        }
+        // US14: anunciar la reserva (el observador de notificaciones avisa al conductor)
+        tripEvents.publish(TRIP_EVENTS.BOOKING_CREATED, {
+            route,
+            booking,
+            passengerName: getFullName(findUserById(passengerId))
+        });
 
         return res.status(200).json({
             message: "¡Te has unido a la ruta con éxito!",
@@ -475,6 +493,8 @@ const getRouteRequests = (req, res) => {
                     id: booking.id,
                     passengerName: getFullName(passenger) || 'Pasajero',
                     passengerEmail: passenger?.email || null,
+                    // US21 (Camila): punto de recojo elegido por el pasajero, si lo indicó
+                    pickupAddress: booking.pickupPoint?.address || null,
                     status: booking.status,
                     requestedAt: booking.createdAt,
                     cancelledAt: booking.cancelledAt || null
@@ -590,32 +610,15 @@ const cancelPublishedRoute = (req, res) => {
         // Escenario 02: liberar a los pasajeros y avisarles con prioridad alta
         const cancelledBookings = cancelBookingsByRoute(route.id, reason);
 
-        createNotifications(cancelledBookings.map(booking => ({
-            userId: booking.passengerId,
-            type: NOTIFICATION_TYPES.ROUTE_CANCELLED,
-            priority: PRIORITY.HIGH,
-            title: 'Tu viaje fue cancelado',
-            message: `El conductor canceló el viaje ${shortPlace(route.origin)} → ${shortPlace(route.dest)} de las ${route.time}.` +
-                (reason ? ` Motivo: ${reason}` : '') +
-                ' Busca otra ruta disponible.',
-            routeId: route.id
-        })));
-
-        // Escenario 04: penalización por cancelación tardía
-        const minutesBeforeDeparture = Math.floor((Number(route.expiresAtTimestamp) - now) / 60000);
-        const isLateCancellation =
-            cancelledBookings.length > 0 &&
-            minutesBeforeDeparture < LATE_CANCELLATION_MINUTES;
-
-        if (isLateCancellation) {
-            addStrike({
-                driverId: currentUserId,
-                routeId: route.id,
-                affectedPassengers: cancelledBookings.length,
-                minutesBeforeDeparture,
-                reason
-            });
-        }
+        // Escenarios 02 y 04: anunciar la cancelación. Los observadores avisan a los
+        // pasajeros (prioridad alta) y registran el strike si fue tardía.
+        tripEvents.publish(TRIP_EVENTS.ROUTE_CANCELLED, {
+            route,
+            driverId: currentUserId,
+            cancelledBookings,
+            reason,
+            cancelledAt: now
+        });
 
         return res.status(200).json({
             message: cancelledBookings.length > 0

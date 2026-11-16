@@ -3,6 +3,11 @@
 
 const { getAlerts } = require('./routeAlertModel');
 const { addRouteMatchNotifications } = require('./notificationModel');
+const { AccountFacade } = require('../account/accountFacade');
+
+// US32: si el usuario apagó las alertas de nuevos viajes, no se le notifica
+const cuentas = AccountFacade.crearPorDefecto();
+const puedeNotificar = (userId) => cuentas.puedeNotificar(userId, 'coincidenciaRuta');
 
 // Distancia máxima (km) entre origen/destino de la alerta y de la ruta para considerarla coincidente
 const MATCH_RADIUS_KM = 2;
@@ -75,16 +80,12 @@ function routeMatchesAlert(route, alert) {
   );
 }
 
-const shortPlace = (text) => String(text || '').split(',')[0].trim();
+// El texto del aviso lo arma la fábrica de notificaciones (patrón Factory)
+const { NotificationFactory } = require('./notificationFactory');
+const { NOTIFICATION_TYPES } = require('./notificationModel');
 
 function buildMatchNotification(route, alert) {
-  return {
-    userId: alert.userId,
-    title: 'Nuevo viaje en tu ruta habitual',
-    message: `${shortPlace(route.origin)} → ${shortPlace(route.dest)} a las ${route.time}. ¡Reserva antes de que se llenen los asientos!`,
-    routeId: route.id,
-    alertId: alert.id,
-  };
+  return NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_MATCH, { route, alert });
 }
 
 /**
@@ -102,6 +103,7 @@ function notifyMatchingAlertsForRoute(route) {
 
     alerts.forEach(alert => {
       if (notifiedUsers.has(alert.userId)) return;
+      if (!puedeNotificar(alert.userId)) return; // US32
       if (routeMatchesAlert(route, alert)) {
         notifiedUsers.add(alert.userId);
         toCreate.push(buildMatchNotification(route, alert));
@@ -124,7 +126,9 @@ function notifyMatchingAlertsForRoute(route) {
  */
 function notifyExistingRoutesForAlert(alert, activeRoutes) {
   try {
-    const matches = (activeRoutes || []).filter(route => routeMatchesAlert(route, alert));
+    const matches = puedeNotificar(alert.userId) // US32
+      ? (activeRoutes || []).filter(route => routeMatchesAlert(route, alert))
+      : [];
     addRouteMatchNotifications(matches.map(route => buildMatchNotification(route, alert)));
     return matches;
   } catch (error) {

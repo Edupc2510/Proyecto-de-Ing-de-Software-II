@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveShare · Mi cuenta</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/account_pages.css" />
+  <script src="/js/theme.js"></script>
+</head>
+<body class="page-body">
+
+  <header class="page-header">
+    <a class="btn btn--ghost btn--sm" href="/dashboard">← Volver</a>
+    <h1 class="page-header__title">Mi cuenta</h1>
+    <span class="page-header__spacer"></span>
+    <img class="page-header__logo" src="/assets/moveshare-logo-dark.png" alt="MoveShare" />
+  </header>
+
+  <main class="page">
+    <nav class="tabs" role="tablist" aria-label="Secciones de la cuenta">
+      <button class="tab tab--active" role="tab" aria-selected="true" data-tab="perfil" type="button">Mi perfil</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="ajustes" type="button">Privacidad y ajustes</button>
+    </nav>
+
+    <!-- US19 · Editar perfil -->
+    <section id="tab-perfil" class="card" role="tabpanel">
+      <h2 class="card__title">Información personal</h2>
+      <p class="card__hint">Actualiza tus datos y tus preferencias de viaje.</p>
+
+      <form id="profile-form" novalidate>
+        <div class="avatar-row">
+          <div class="avatar" id="avatar">U</div>
+          <div>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-cambiar-foto">Cambiar foto</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-quitar-foto" hidden>Quitar foto</button>
+            <input type="file" id="f-foto" accept="image/png,image/jpeg,image/webp" hidden />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="f-firstName">Nombre</label>
+            <input id="f-firstName" type="text" maxlength="40" autocomplete="given-name" />
+            <span class="field__error" id="err-firstName"></span>
+          </div>
+          <div class="field">
+            <label for="f-lastName">Apellido</label>
+            <input id="f-lastName" type="text" maxlength="40" autocomplete="family-name" />
+            <span class="field__error" id="err-lastName"></span>
+          </div>
+          <div class="field">
+            <label for="f-email">Correo</label>
+            <input id="f-email" type="email" readonly />
+          </div>
+          <div class="field">
+            <label for="f-dni">DNI</label>
+            <input id="f-dni" type="text" readonly />
+          </div>
+          <div class="field field--full">
+            <label for="f-phone">Teléfono (opcional)</label>
+            <input id="f-phone" type="tel" placeholder="9XXXXXXXX" autocomplete="tel" />
+            <span class="field__error" id="err-phone"></span>
+          </div>
+        </div>
+
+        <h3 class="section-title">Preferencias de viaje</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label for="f-conversacion">Conversación durante el viaje</label>
+            <select id="f-conversacion"><option value="indistinto">Indistinto</option><option value="si">Sí</option><option value="no">No</option></select>
+          </div>
+          <div class="field">
+            <label for="f-musica">Música</label>
+            <select id="f-musica"><option value="indistinto">Indistinto</option><option value="si">Sí</option><option value="no">No</option></select>
+          </div>
+          <div class="field">
+            <label for="f-mascotas">Mascotas</label>
+            <select id="f-mascotas"><option value="indistinto">Indistinto</option><option value="si">Sí</option><option value="no">No</option></select>
+            <span class="field__error" id="err-preferencias"></span>
+          </div>
+        </div>
+        <span class="field__error" id="err-photo"></span>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" id="btn-guardar-perfil">Guardar cambios</button>
+        </div>
+        <div id="perfil-aviso" class="notice" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <!-- US32 · Gestión avanzada de cuenta -->
+    <section id="tab-ajustes" class="card" role="tabpanel" hidden>
+      <h2 class="card__title">Privacidad y ajustes</h2>
+      <p class="card__hint">Controla qué datos compartes y cómo te notificamos.</p>
+
+      <div class="switch-row">
+        <div class="switch-row__text"><strong>Mostrar teléfono a la comunidad</strong><span>Si lo desactivas, solo podrán contactarte por el chat interno.</span></div>
+        <label class="switch"><input type="checkbox" data-setting="showPhone" aria-label="Mostrar teléfono a la comunidad" /><span class="switch__track"></span></label>
+      </div>
+      <div class="switch-row">
+        <div class="switch-row__text"><strong>Alertas de nuevos viajes</strong><span>Avisos cuando se publica una ruta que coincide con la tuya.</span></div>
+        <label class="switch"><input type="checkbox" data-setting="pushNotifications" aria-label="Alertas de nuevos viajes" /><span class="switch__track"></span></label>
+      </div>
+      <div class="switch-row">
+        <div class="switch-row__text"><strong>Modo oscuro</strong><span>Interfaz de bajo brillo; se aplica de inmediato.</span></div>
+        <label class="switch"><input type="checkbox" data-setting="darkMode" aria-label="Modo oscuro" /><span class="switch__track"></span></label>
+      </div>
+      <div class="switch-row">
+        <div class="switch-row__text"><strong>Pausar mi cuenta</strong><span>Oculta tu perfil y tus viajes de las búsquedas y no recibes solicitudes hasta reactivarla.</span></div>
+        <label class="switch"><input type="checkbox" data-setting="accountPaused" aria-label="Pausar mi cuenta" /><span class="switch__track"></span></label>
+      </div>
+      <p id="pausa-nota" class="notice notice--info">Tu cuenta está en pausa. Desactiva esta opción para volver a aparecer.</p>
+
+      <div id="ajustes-aviso" class="notice" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="/js/cuenta.js"></script>
+</body>
+</html>
