@@ -1334,6 +1334,9 @@ async function confirmFinalBooking(routeId) {
     closeRouteModal();
     await loadPassengerRoutes();
 
+    // US23 - Escenario 05: el nuevo viaje aparece en el historial
+    if (window.TripHistory) TripHistory.refresh();
+
   } catch (err) {
     console.error('[Dashboard] Error al confirmar reserva:', err);
     alert('Error de conexión al procesar la reserva.');
