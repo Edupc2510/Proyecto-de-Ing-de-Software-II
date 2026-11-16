@@ -18,6 +18,9 @@ const favoriteDriverRoutes = require('./src/drivers/favoriteDriverRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Patrón Observer: conecta notificaciones y fiabilidad con los eventos de viaje (US14, US31, US34)
+require('./src/shared/events/registerTripSubscribers')();
+
 // ─────────────────────────────────────────────────────────────
 // MIDDLEWARE GLOBAL
 // ─────────────────────────────────────────────────────────────

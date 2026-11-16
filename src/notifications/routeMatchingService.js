@@ -75,16 +75,12 @@ function routeMatchesAlert(route, alert) {
   );
 }
 
-const shortPlace = (text) => String(text || '').split(',')[0].trim();
+// El texto del aviso lo arma la fábrica de notificaciones (patrón Factory)
+const { NotificationFactory } = require('./notificationFactory');
+const { NOTIFICATION_TYPES } = require('./notificationModel');
 
 function buildMatchNotification(route, alert) {
-  return {
-    userId: alert.userId,
-    title: 'Nuevo viaje en tu ruta habitual',
-    message: `${shortPlace(route.origin)} → ${shortPlace(route.dest)} a las ${route.time}. ¡Reserva antes de que se llenen los asientos!`,
-    routeId: route.id,
-    alertId: alert.id,
-  };
+  return NotificationFactory.crear(NOTIFICATION_TYPES.ROUTE_MATCH, { route, alert });
 }
 
 /**
