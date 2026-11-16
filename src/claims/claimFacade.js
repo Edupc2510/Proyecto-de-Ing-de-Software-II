@@ -27,6 +27,7 @@ const {
   ConRespuestaSoporte,
   ConViajeAsociado,
 } = require('./claimViewDecorators');
+const { validarCriteriosBusqueda, cumpleCriterios } = require('./claimSearchCriteria');
 const { ReservaRepositorio } = require('../reservations/reservationRepository');
 const { DomainError } = require('../shared/httpHelpers');
 
@@ -37,23 +38,25 @@ class ReclamoFacade {
   }
 
   /**
-   * Lista los reclamos del pasajero (vista base + tiempo de respuesta).
+   * Lista los reclamos del pasajero (vista base + tiempo de respuesta),
+   * filtrados por los 5 criterios de búsqueda: código, estado, categoría,
+   * fecha desde y fecha hasta (todos opcionales).
    */
-  consultarMisReclamos(passengerId, { estado } = {}) {
-    if (estado && estado !== 'todos' && !CATALOGO_ESTADOS[estado]) {
-      throw new DomainError('El estado de filtro no es válido.');
-    }
+  consultarMisReclamos(passengerId, filtros = {}) {
+    const criterios = validarCriteriosBusqueda(filtros);
     const ahora = Date.now();
     const reclamos = this.reclamoDAO.listarPorPasajero(passengerId);
 
     const abiertos = reclamos.filter(r => !CATALOGO_ESTADOS[r.status]?.final).length;
-    const filtrados = !estado || estado === 'todos' ? reclamos : reclamos.filter(r => r.status === estado);
+    const filtrados = reclamos.filter(r => cumpleCriterios(r, criterios));
 
     return {
       total: reclamos.length,
       abiertos,
       cerrados: reclamos.length - abiertos,
+      encontrados: filtrados.length,
       estados: Object.entries(CATALOGO_ESTADOS).map(([codigo, e]) => ({ codigo, etiqueta: e.etiqueta })),
+      categorias: Object.entries(CATEGORIAS).map(([clave, c]) => ({ clave, etiqueta: c.etiqueta })),
       reclamos: filtrados
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .map(r => new ConTiempoDeRespuesta(new VistaReclamoBase(r), r, ahora).construir()),
