@@ -1,0 +1,140 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+skinparam linetype ortho
+hide circle
+title MoveShare - Modelo entidad-relación (diseño equivalente a las colecciones JSON)
+
+entity usuario {
+  * id : UUID <<PK>>
+  --
+  nombre, apellido
+  correo <<UQ>>
+  dni <<UQ>>
+  password_hash
+  verificado
+  creado_en
+}
+entity perfil_usuario {
+  * usuario_id : UUID <<PK,FK>>
+  --
+  telefono, foto_url
+}
+entity ajustes_cuenta {
+  * usuario_id : UUID <<PK,FK>>
+  --
+  cuenta_pausada
+  alertas_coincidencia
+  mostrar_telefono
+}
+entity ruta {
+  * id : BIGINT <<PK>>
+  --
+  conductor_id <<FK>>
+  origen, origen_lat, origen_lng
+  destino, destino_lat, destino_lng
+  hora_salida, salida_en
+  asientos_totales, asientos_libres
+  notas
+  estado (activa | cancelada)
+  motivo_cancelacion, cancelada_en
+}
+entity reserva {
+  * id : UUID <<PK>>
+  --
+  ruta_id <<FK>>
+  pasajero_id <<FK>>
+  conductor_id <<FK>>
+  estado (confirmada | cancelada)
+  recojo_direccion, recojo_lat, recojo_lng
+  creada_en, cancelada_en
+}
+entity calificacion {
+  * id : UUID <<PK>>
+  --
+  ruta_id <<FK>>, reserva_id <<FK>>
+  calificador_id <<FK>>, calificado_id <<FK>>
+  rol_calificado (driver | passenger)
+  puntaje (1..5), comentario
+}
+entity ruta_habitual {
+  * id : UUID <<PK>>
+  --
+  usuario_id <<FK>>
+  origen/destino + coordenadas
+  hora_desde, hora_hasta
+  activa
+}
+entity notificacion {
+  * id : UUID <<PK>>
+  --
+  usuario_id <<FK>>
+  tipo, prioridad
+  titulo, mensaje
+  ruta_habitual_id <<FK>>
+  leida
+}
+entity notificacion_ruta {
+  * notificacion_id <<PK,FK>>
+  * ruta_id <<PK,FK>>
+}
+entity strike_conductor {
+  * id : UUID <<PK>>
+  --
+  conductor_id <<FK>>, ruta_id <<FK>>
+  pasajeros_afectados
+  minutos_antes_salida
+}
+entity conductor_favorito {
+  * pasajero_id <<PK,FK>>
+  * conductor_id <<PK,FK>>
+  --
+  guardado_en
+}
+entity contacto_conductor {
+  * id : UUID <<PK>>
+  --
+  pasajero_id <<FK>>, conductor_id <<FK>>
+  canal
+}
+entity historial_participacion {
+  * id : UUID <<PK>>
+  --
+  reserva_id <<FK>>, pasajero_id <<FK>>
+  tipo, estado_previo, deshecho
+}
+entity reclamo {
+  * id : UUID <<PK>>
+  --
+  codigo <<UQ>>
+  usuario_id <<FK>>
+  ruta_id <<FK>>, reserva_id <<FK>>
+  categoria, prioridad, estado
+  descripcion, respuesta
+}
+entity reclamo_historial {
+  * id <<PK>>
+  --
+  reclamo_id <<FK>>
+  estado, nota, registrado_en
+}
+
+usuario ||--o| perfil_usuario
+usuario ||--o| ajustes_cuenta
+usuario ||--o{ ruta : publica
+ruta ||--o{ reserva : tiene
+usuario ||--o{ reserva : reserva
+reserva ||--o{ calificacion : origina
+usuario ||--o{ calificacion : recibe
+usuario ||--o{ ruta_habitual : configura
+usuario ||--o{ notificacion : recibe
+notificacion ||--|{ notificacion_ruta
+ruta ||--o{ notificacion_ruta
+ruta_habitual |o--o{ notificacion : dispara
+ruta ||--o{ strike_conductor : genera
+usuario ||--o{ conductor_favorito : guarda
+usuario ||--o{ contacto_conductor : contacta
+reserva ||--o{ historial_participacion : registra
+usuario ||--o{ reclamo : presenta
+reclamo ||--|{ reclamo_historial
+ruta |o--o{ reclamo
+@enduml
