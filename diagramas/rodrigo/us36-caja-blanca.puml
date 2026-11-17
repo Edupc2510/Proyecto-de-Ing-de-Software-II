@@ -1,0 +1,46 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam dpi 180
+skinparam ranksep 18
+skinparam nodesep 35
+title validateReportInput y sus nueve decisiones
+rectangle "D1  routeId no es texto" as D1
+rectangle "D2  routeId vacío" as D2
+rectangle "D3  category no es texto" as D3
+rectangle "D4  category fuera del catálogo" as D4
+rectangle "D5  description no es texto" as D5
+rectangle "D6  description vacía" as D6
+rectangle "D7  description supera 1000" as D7
+rectangle "D8  requestId no es texto" as D8
+rectangle "D9  requestId con formato incorrecto" as D9
+rectangle "Lanzar ReportError\nCB01 a CB09" as E
+rectangle "Devolver datos normalizados\nCB10" as A
+circle "Fin" as F
+D1 -down-> D2 : no
+D1 -right-> E : sí CB01
+D2 -down-> D3 : no
+D2 -right-> E : sí CB02
+D3 -down-> D4 : no
+D3 -right-> E : sí CB03
+D4 -down-> D5 : no
+D4 -right-> E : sí CB04
+D5 -down-> D6 : no
+D5 -right-> E : sí CB05
+D6 -down-> D7 : no
+D6 -right-> E : sí CB06
+D7 -down-> D8 : no
+D7 -right-> E : sí CB07
+D8 -down-> D9 : no
+D8 -right-> E : sí CB08
+D9 -down-> A : no
+D9 -right-> E : sí CB09
+E --> F
+A --> F
+legend bottom
+V(G) = decisiones + 1 = 9 + 1 = 10
+Cada CB de rechazo termina en ReportError.
+CB10 recorre todas las decisiones por no.
+endlegend
+@enduml

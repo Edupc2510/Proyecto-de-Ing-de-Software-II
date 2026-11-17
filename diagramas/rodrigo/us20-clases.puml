@@ -1,0 +1,37 @@
+@startuml
+!pragma layout smetana
+title US20 · clases y módulos reales
+skinparam classAttributeIconSize 0
+class PasswordResetService {
+  pending : Map
+  requestReset(email)
+  resetPassword(token, password, confirmation)
+}
+class RecoveryError {
+  status
+}
+class passwordResetRoutes <<módulo JS>> {
+  createPasswordResetRouter(service)
+}
+class userModel <<módulo JS>> {
+  findUserByEmail(email)
+  findUserById(id)
+  updateUser(id, updates)
+}
+class emailService <<módulo JS>> {
+  sendPasswordResetEmail(toEmail, resetUrl)
+}
+class passwordSession <<módulo JS>> {
+  expireChangedPasswordSession(req, res, next)
+}
+passwordResetRoutes --> PasswordResetService : delega
+PasswordResetService ..> RecoveryError : lanza
+PasswordResetService --> userModel : users (inyectable)
+PasswordResetService --> emailService : sendEmail (inyectable)
+passwordSession --> userModel : compara passwordVersion
+note bottom of PasswordResetService
+  Un solo proceso: tokens en memoria.
+  bcrypt calcula el hash de la contraseña.
+  SHA-256 identifica el token almacenado.
+end note
+@enduml

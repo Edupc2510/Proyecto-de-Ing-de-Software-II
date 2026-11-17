@@ -1,0 +1,50 @@
+@startuml
+title US36 · registrar antes de enviar el correo
+autonumber
+actor "Pasajero / conductor" as Usuario
+participant "report_incident.js" as UI
+participant reportRoutes as API
+participant ReportService as Servicio
+participant TripAccessRepository as Viajes
+participant ReportRepository as DAO
+participant emailService as Correo
+Usuario -> UI : Elegir viaje, motivo y descripción
+UI -> API : POST /reports {routeId, category, description, requestId}
+API -> API : Verificar sesión y obtener usuario
+API -> Servicio : register(user, input)
+Servicio -> Servicio : validateReportInput(input)
+Servicio -> DAO : findRequest(user.id, requestId)
+alt Envío ya registrado (reintento)
+  DAO --> Servicio : reclamo previo
+  Servicio --> API : result(previous)
+else Nuevo envío
+  DAO --> Servicio : undefined
+  Servicio -> Viajes : getForUser(user.id)
+  Viajes --> Servicio : viajes vinculados
+  Servicio -> Servicio : Buscar routeId; generar código y reclamo
+  Servicio -> DAO : save(report con emailStatus pendiente)
+  alt Guardado exitoso
+    DAO --> Servicio : report
+    Servicio -> Correo : sendReportConfirmationEmail(user.email, report.code)
+    alt SMTP acepta el mensaje
+      Correo --> Servicio : resuelto
+      Servicio -> Servicio : emailStatus = enviado
+    else Fallo SMTP
+      Correo --> Servicio : error
+      Servicio -> Servicio : emailStatus = fallido
+    end
+    Servicio -> DAO : save(report con estado de correo)
+    note right of DAO
+      Si esta segunda escritura falla,
+      se devuelve código y aviso pendiente.
+      La primera escritura ya conserva el reclamo.
+    end note
+    Servicio --> API : result(report)
+  else Primer guardado falla
+    DAO --> Servicio : error
+    Servicio --> API : error (no envía correo)
+  end
+end
+API --> UI : 201 con código / 400, 401, 403 o 500
+UI --> Usuario : Código y resultado del envío
+@enduml

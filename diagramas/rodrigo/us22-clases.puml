@@ -1,0 +1,37 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+title US22 integrada con US33: módulos y responsabilidades
+class tripDetails <<módulo JS>> {
+ updateTripDetails(req, res)
+}
+class tripNotes <<módulo JS>> {
+ validateNotes(notes, required)
+ MAX_NOTES_LENGTH = 500
+}
+class routeEditController <<módulo JS>> {
+ editPublishedRoute(req, res)
+}
+class routeEditService <<módulo JS>> {
+ applyRouteEdit(params)
+ isEditLocked(route, now)
+ getRouteCapacity(route)
+}
+class routeModel <<módulo JS>>
+class bookingModel <<módulo JS>>
+class tripEvents <<Observer compartido>>
+class routeController <<módulo JS>>
+tripDetails --> tripNotes : valida
+tripDetails --> routeEditController : solo notes
+routeController --> tripNotes : valida al publicar
+routeEditController --> routeEditService
+routeEditController --> routeModel : guarda
+routeEditController --> tripEvents : ROUTE_UPDATED
+routeEditService --> tripNotes
+routeEditService --> bookingModel : capacidad y reservas
+note bottom of routeEditService
+Propietario, no cancelada,
+salida válida y margen >= 30 minutos.
+Admite reservas: se notifica a pasajeros.
+end note
+@enduml

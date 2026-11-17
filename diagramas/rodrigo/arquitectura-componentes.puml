@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+skinparam dpi 180
+title Componentes del aporte de Rodrigo
+left to right direction
+package Navegador {
+ [Recuperación] as UI20
+ [Dashboard y filtros] as UI26
+ [Formulario de reclamo] as UI36
+}
+package Express {
+ [PasswordResetService] as S20
+ [Edición compartida US22 y US33] as S22
+ [Catálogo y routeFilters] as S26
+ [ReportService] as S36
+ [ReportRepository] as DAO
+ [TripAccessRepository] as Adapter
+}
+database "JSON local\nusers routes bookings claims" as JSON
+cloud "SMTP Gmail" as SMTP
+UI20 --> S20
+UI26 --> S22
+UI26 --> S26
+UI36 --> S36
+S20 --> JSON
+S20 --> SMTP
+S22 --> JSON
+S26 --> JSON
+S36 --> DAO
+S36 --> Adapter
+DAO --> JSON
+Adapter --> JSON
+S36 --> SMTP
+note bottom of S22 : Reutiliza Observer de Main
+@enduml

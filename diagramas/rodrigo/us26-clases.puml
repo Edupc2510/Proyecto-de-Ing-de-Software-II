@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+title US26 integrada en el catálogo ordenable
+class dashboard <<frontend>> {
+ loadPassengerRoutes()
+}
+class trip_tools <<frontend>> {
+ getTripFilterQuery()
+}
+class TripSortControl <<frontend>> {
+ catalogUrl()
+}
+class tripCatalogController <<módulo JS>>
+class CatalogoViajesService {
+ listar(consulta)
+}
+class tripFilters <<módulo JS>> {
+ construirFiltros(consulta)
+}
+class routeFilters <<módulo JS>> {
+ parseRouteFilters(query)
+ filterRoutes(routes, filters)
+}
+class FabricaOrdenamiento
+class AccountFacade
+class RutaFuenteAdapter
+class routeController <<API anterior>>
+dashboard --> trip_tools
+dashboard --> TripSortControl
+dashboard ..> tripCatalogController : GET /trip-catalog
+tripCatalogController --> CatalogoViajesService
+CatalogoViajesService --> tripFilters
+tripFilters --> routeFilters
+CatalogoViajesService --> FabricaOrdenamiento
+CatalogoViajesService --> AccountFacade : visibilidad
+CatalogoViajesService --> RutaFuenteAdapter
+routeController --> routeFilters : compatibilidad GET /trips
+@enduml

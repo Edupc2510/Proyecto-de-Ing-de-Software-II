@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+title US36 · Facade, DAO y adaptador
+skinparam classAttributeIconSize 0
+class ReportService <<Facade>> {
+  reports
+  trips
+  sendEmail
+  register(user, input)
+  result(report)
+}
+class ReportRepository <<DAO>> {
+  filename
+  read()
+  findRequest(userId, requestId)
+  save(report)
+}
+class TripAccessRepository <<Adapter>> {
+  directory
+  read(filename)
+  getForUser(userId)
+  hasReservations(route)
+}
+class reportRoutes <<módulo JS>> {
+  createReportRouter(service)
+}
+class reportService <<módulo JS>> {
+  validateReportInput(input)
+}
+class emailService <<módulo JS>> {
+  sendReportConfirmationEmail(toEmail, code)
+}
+reportRoutes --> ReportService : register
+reportRoutes --> TripAccessRepository : lista viajes
+ReportService --> reportService : validateReportInput
+ReportService --> ReportRepository : reports
+ReportService --> TripAccessRepository : trips
+ReportService --> emailService : sendEmail
+note bottom of TripAccessRepository
+  Lee routes.json y bookings.json.
+  bookingModel (Luciano) registra las reservas.
+  Este adaptador no escribe reservas.
+end note
+@enduml

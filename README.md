@@ -52,11 +52,7 @@ npm ci
 
 ### 3. Configura las variables de entorno
 
-```bash
-cp .env.example .env
-```
-
-Edita el archivo `.env` con tus credenciales:
+Crea un archivo `.env` en la raíz del proyecto con tus credenciales:
 
 ```env
 PORT=3000
@@ -106,7 +102,6 @@ MoveShare usa Gmail para enviar correos de verificación. **No uses tu contrase�
 moveshare/
 ├── app.js                     # Punto de entrada del servidor
 ├── package.json               # Dependencias y scripts
-├── .env.example               # Plantilla de variables de entorno
 ├── README.md                  # Este archivo
 │
 ├── src/
@@ -115,7 +110,7 @@ moveshare/
 │   ├── trips/                 # Rutas, detalles, filtros y vínculos de viaje
 │   ├── reports/               # Registro de incidencias y persistencia de reclamos
 │   └── shared/middleware/     # Middleware compartido
-├── tests/                     # Pruebas unitarias y de integración de Rodrigo
+├── tests/                     # Pruebas unitarias y de integración del equipo
 │
 ├── data/
 │   ├── users.json             # Usuarios (JSON local)
