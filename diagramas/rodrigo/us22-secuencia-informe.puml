@@ -1,0 +1,30 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+title US22: editar notas con reglas y avisos compartidos
+actor Conductor
+participant "trip_tools.js" as UI
+participant "tripDetails" as Detalles
+participant "routeEditController" as Controlador
+participant "routeEditService" as Servicio
+participant "routeModel" as Modelo
+participant "tripEvents" as Eventos
+Conductor -> UI : Escribir notas
+UI -> Detalles : 1: PATCH /trips/:routeId/details
+Detalles -> Detalles : 2: Sesión y validateNotes
+Detalles -> Controlador : 3: editPublishedRoute (solo notes)
+Controlador -> Modelo : 4: getRoutes()
+Controlador -> Servicio : 5: applyRouteEdit
+Servicio -> Servicio : 6: Propietario, estado, margen 30 min\ntexto no vacío, máximo 500
+alt Cambio válido
+ Servicio --> Controlador : 7: ruta actualizada
+ Controlador -> Modelo : 8: saveRoutes
+ Controlador -> Eventos : 9: ROUTE_UPDATED + reservas activas
+ note right of Eventos : Suscriptores notifican a pasajeros
+ Controlador --> UI : 10: 200, ruta y cantidad notificada
+ UI -> UI : 11: Actualizar tarjetas
+else Datos inválidos / ajeno / cancelada / próxima
+ Servicio --> Controlador : 12: error 400/403/409
+ Controlador --> UI : 13: Mostrar error sin guardar
+end
+@enduml

@@ -1,0 +1,33 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+title US26 + US27/28: filtrar y ordenar sin modificar datos
+actor Pasajero
+participant "dashboard + trip_tools" as UI
+participant "TripSortControl" as Orden
+participant "tripCatalogController" as API
+participant "CatalogoViajesService" as Servicio
+participant "tripFilters + routeFilters" as Filtros
+participant "RutaFuenteAdapter" as Fuente
+Pasajero -> UI : Aplicar horario y mínimo de asientos
+UI -> Orden : catalogUrl() con orden elegido
+UI -> API : GET /trip-catalog?orden=masAsientos\n&timeFrom=08:00&timeTo=11:00&minSeats=2
+API -> Servicio : listar(consulta)
+Servicio -> Filtros : construirFiltros + parseRouteFilters
+alt Filtros inválidos
+ Filtros --> API : DomainError 400
+ API --> UI : Mensaje de validación
+else Válidos
+ Servicio -> Fuente : listar()
+ Fuente --> Servicio : rutas
+ Servicio -> Servicio : vigencia, visibilidad y disponibilidad
+ Servicio -> Filtros : acepta(viaje) / filterRoutes
+ Servicio -> Servicio : estrategia.ordenar(candidatos)
+ Servicio --> API : viajes + orden + opciones
+ API --> UI : 200 catálogo
+ UI -> UI : Descartar respuesta antigua\nMostrar tarjetas o mensaje sin coincidencias
+end
+Pasajero -> UI : Limpiar
+UI -> API : GET /trip-catalog?orden=masAsientos
+note over UI,Fuente : No se guarda la lista filtrada en JSON.
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+title US20 · solicitud y restablecimiento
+autonumber
+actor Usuario
+participant "password_recovery.js" as UI
+participant "passwordResetRoutes" as API
+participant PasswordResetService as Servicio
+participant userModel as Usuarios
+participant emailService as Correo
+Usuario -> UI : Escribir correo
+UI -> API : POST /auth/forgot-password {email}
+API -> Servicio : requestReset(email)
+Servicio -> Usuarios : findUserByEmail(email)
+Usuarios --> Servicio : usuario o null
+alt Cuenta encontrada y sin solicitud reciente
+  Servicio -> Servicio : Generar token; guardar hash y vencimiento
+  Servicio -> Correo : sendPasswordResetEmail(email, resetUrl)
+  alt SMTP acepta el mensaje
+    Correo --> Servicio : resuelto
+  else Error SMTP
+    Correo --> Servicio : error
+    Servicio -> Servicio : Eliminar token pendiente
+  end
+end
+Servicio --> API : Mensaje genérico (correo con formato válido)
+API --> UI : 200 {success, message}
+Usuario -> UI : Abrir enlace recibido; escribir nueva contraseña
+UI -> API : POST /auth/reset-password
+API -> Servicio : resetPassword(token, password, confirmation)
+alt Token válido, vigente y contraseña válida
+  Servicio -> Servicio : Marcar busy; await bcrypt.hash(password, 10)
+  Servicio -> Servicio : Volver a comprobar vigencia y token actual
+  Servicio -> Usuarios : findUserById(userId)
+  Servicio -> Usuarios : updateUser(id, {password: hash, passwordVersion: versión + 1})
+  Usuarios --> Servicio : usuario actualizado
+  Servicio -> Servicio : Consumir token
+  Servicio --> API : mensaje de éxito
+  API --> UI : 200
+else Validación fallida
+  Servicio --> API : RecoveryError
+  API --> UI : 400 / 409
+end
+note over Usuarios
+  expireChangedPasswordSession compara versiones
+  e invalida sesiones anteriores en la siguiente petición.
+end note
+@enduml

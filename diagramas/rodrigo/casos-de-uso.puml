@@ -1,0 +1,26 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+skinparam dpi 180
+title Casos de uso de Rodrigo
+left to right direction
+actor Usuario
+actor Conductor
+actor Pasajero
+actor "Servicio de correo" as SMTP
+rectangle MoveShare {
+ usecase "US20\nRecuperar contraseña" as U20
+ usecase "US22\nAñadir y editar detalles" as U22
+ usecase "Leer detalles del viaje" as Leer
+ usecase "US26\nFiltrar viajes" as U26
+ usecase "US36\nReportar incidencia" as U36
+}
+Usuario --> U20
+Conductor --> U22
+Pasajero --> Leer
+Pasajero --> U26
+Conductor --> U36
+Pasajero --> U36
+U20 --> SMTP
+U36 --> SMTP
+@enduml

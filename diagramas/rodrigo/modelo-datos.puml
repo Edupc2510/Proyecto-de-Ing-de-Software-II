@@ -1,0 +1,55 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Arial
+skinparam dpi 180
+title Datos usados por el aporte de Rodrigo
+entity "users.json" as U {
+ id
+ email
+ password
+ passwordVersion
+}
+entity "routes.json" as R {
+ id
+ driverId
+ notes
+ time
+ expiresAtTimestamp
+ seats
+ totalSeats
+ initialSeats
+}
+entity "bookings.json" as B {
+ id
+ routeId
+ driverId
+ passengerId
+ status
+ routeSnapshot
+ pickupPoint
+}
+entity "claims.json" as C {
+ id
+ code
+ passengerId
+ reporterRole
+ routeId
+ reservationId
+ routeSnapshot
+ description
+ status
+ requestId
+ emailStatus
+}
+U ||--o{ R : publica
+U ||--o{ B : reserva
+R ||--o{ B : viaje
+U ||--o{ C : autor
+R ||..o{ C : referencia histórica
+B |o..o{ C : reserva opcional
+note bottom of C
+passengerId identifica al autor incluso si es conductor.
+Relaciones lógicas sin claves foráneas de base de datos.
+Las instantáneas conservan contexto histórico.
+end note
+@enduml
