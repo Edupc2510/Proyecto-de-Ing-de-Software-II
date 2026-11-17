@@ -36,7 +36,7 @@ const TripHistory = (() => {
     modal.innerHTML = `
       <div class="driver-form-card" style="width: 100%; max-width: 560px; margin: auto; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="driver-form-card__header" style="justify-content: space-between; align-items: center;">
-          <span>Mis viajes</span>
+          <span>Historial de viajes</span>
           <button type="button" data-action="close" style="background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
         </div>
         <div class="driver-form-body" style="overflow-y: auto;">
