@@ -1,0 +1,29 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+title MoveShare - Vista de despliegue (versión entregada)
+
+node "Dispositivo del usuario\n(PC o móvil)" as CLI {
+  artifact "Navegador web\n(HTML, CSS, JavaScript, Leaflet)" as BROWSER
+}
+
+node "Servidor de aplicación\n(Windows / Linux / macOS)" as SRV {
+  node "Node.js 24" as NODE {
+    artifact "app.js (Express 4)\n+ src/ (rutas, controladores,\nservicios, DAO)" as APP
+    artifact "public/ y views/\n(archivos estáticos)" as STATIC
+  }
+  folder "data/" as DATA {
+    file "users.json, routes.json,\nbookings.json, ratings.json,\nnotifications.json, claims.json, ..." as FILES
+  }
+}
+
+cloud "Servicios externos" {
+  node "OpenStreetMap\n(teselas y Nominatim)" as OSM
+  node "Gmail SMTP\n(nodemailer)" as GMAIL
+}
+
+BROWSER --> APP : HTTP(S) · JSON\nsesión con cookie
+BROWSER --> OSM : HTTPS (mapa y direcciones)
+APP --> FILES : lectura / escritura\n(JsonDataSource)
+APP --> GMAIL : SMTP/TLS (puerto 587)
+APP --> STATIC
+@enduml
