@@ -1,0 +1,42 @@
+@startuml F07_secuencia_US27_US28
+title Secuencia US27 / US28 - Ordenar viajes del catálogo
+skinparam shadowing false
+skinparam dpi 130
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 6
+skinparam maxMessageSize 150
+
+
+participant "Navegador\n(dashboard.js)" as N
+participant "TripCatalog\nController" as C
+participant "CatalogoViajes\nService" as S
+participant "Fabrica\nOrdenamiento" as F
+participant "Estrategia\n(MasProximos)" as E
+participant "RutaFuente\nAdapter" as R
+participant "Account\nFacade" as A
+participant "Calificacion\nConductorAdapter" as K
+
+N -> C : 1: GET /trip-catalog\n?orden=masProximos
+C -> S : 2: listar({orden,\ntarifaMax, ...})
+S -> F : 2.1: crear(orden)
+F -> E : 2.1.1: new MasProximos()
+F --> S : estrategia
+S -> S : 2.2: construirFiltros(consulta)
+S -> R : 2.3: listar()
+R --> S : viajes (sin canceladas)
+loop por cada viaje
+  S -> A : 2.4: estaVisible(driverId)
+  A --> S : true / false
+end
+S -> E : 2.5: ordenar(candidatos, ctx)
+E -> S : 2.5.1: calificacionDe\n(driverId)
+S -> K : 2.5.2: resumenDe(driverId)
+K --> S : {average, count}
+S -> S : 2.6: #aVista(viaje)
+S --> C : 3: {orden, ordenes,\ntotal, viajes}
+C --> N : 4: 200 JSON
+note over S, R
+  US28: mismo flujo con MasAsientosLibres / UltimosCupos
+  (mostrarAgotados = true)
+end note
+@enduml

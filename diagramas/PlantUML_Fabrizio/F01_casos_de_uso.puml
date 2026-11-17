@@ -1,0 +1,42 @@
+@startuml F01_casos_de_uso
+title Casos de uso de Fabrizio (US19, US25, US27, US28 y US32)
+left to right direction
+skinparam shadowing false
+skinparam dpi 130
+
+actor "Usuario\nautenticado" as U
+actor Pasajero as P
+actor Conductor as C
+P --|> U
+C --|> U
+
+rectangle "Sistema MoveShare" {
+  usecase "CU-27\nOrdenar viajes\npor horario" as CU27
+  usecase "CU-28\nOrdenar por disponibilidad\nde asientos" as CU28
+  usecase "CU-19\nEditar perfil" as CU19
+  usecase "CU-32\nGestionar privacidad\ny cuenta" as CU32
+  usecase "CU-25\nCalificar pasajero\ndespués del viaje" as CU25
+
+  usecase "Ocultar teléfono" as E1
+  usecase "Desactivar alertas" as E2
+  usecase "Activar modo oscuro" as E3
+  usecase "Pausar cuenta" as E4
+  usecase "Ver calificaciones\nemitidas" as E5
+  usecase "Validar viaje\nfinalizado" as I1
+  usecase "Validar campos\ndel perfil" as I2
+}
+
+P --> CU27
+P --> CU28
+U --> CU19
+U --> CU32
+C --> CU25
+
+E1 .> CU32 : <<extend>>
+E2 .> CU32 : <<extend>>
+E3 .> CU32 : <<extend>>
+E4 .> CU32 : <<extend>>
+E5 .> CU25 : <<extend>>
+CU25 .> I1 : <<include>>
+CU19 .> I2 : <<include>>
+@enduml

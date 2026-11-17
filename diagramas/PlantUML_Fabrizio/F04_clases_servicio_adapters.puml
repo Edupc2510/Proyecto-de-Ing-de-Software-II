@@ -1,0 +1,39 @@
+@startuml F04_clases_servicio_adapters
+title US27 y US28 - Servicio, filtros y Adapters
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam dpi 130
+
+class CatalogoViajesService <<Servicio>> {
+  + listar(consulta)
+}
+class RutaFuenteAdapter <<Adapter>> {
+  - routeModel
+  + listar()
+}
+class CalificacionConductorAdapter <<Adapter>> {
+  - ratingModel
+  + resumenDe(driverId)
+}
+class FiltroTarifaMaxima <<filtro>> {
+  - maximo
+  + acepta(viaje)
+}
+class "AccountFacade (US32)" as AF <<política>> {
+  + estaVisible(driverId)
+}
+class "trips/routeModel" as RM <<Adaptee US14/US34>> {
+  + getRoutes()
+  + isRouteCancelled()
+}
+class "ratings/ratingModel" as RTM <<Adaptee US24>> {
+  + getDriverRatingSummary()
+}
+
+CatalogoViajesService --> RutaFuenteAdapter : fuente
+CatalogoViajesService --> CalificacionConductorAdapter : desempate
+CatalogoViajesService ..> FiltroTarifaMaxima : filtros
+CatalogoViajesService ..> AF : visibilidad
+RutaFuenteAdapter ..> RM : delega
+CalificacionConductorAdapter ..> RTM : delega
+@enduml

@@ -1,0 +1,51 @@
+@startuml F03_clases_strategy_factory
+title US27 y US28 - Strategy y Factory Method
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam dpi 130
+skinparam nodesep 25
+skinparam ranksep 40
+
+class CatalogoViajesService <<Servicio>> {
+  - fuente
+  - calificaciones
+  - visibilidad
+  + listar(consulta)
+}
+class FabricaOrdenamiento <<Factory Method>> {
+  - registro : Map
+  + {static} crear(clave)
+  + {static} opciones()
+}
+abstract class OrdenamientoViajes <<Strategy>> {
+  + clave
+  + etiqueta
+  + mostrarAgotados
+  + comparador(ctx)
+  + ordenar(viajes, ctx)
+}
+class MasProximos {
+  salida ↑
+  calificación ↓
+}
+class MasTarde {
+  salida ↓
+  calificación ↓
+}
+class MasAsientosLibres {
+  agotados al final
+  asientos ↓, salida ↑
+}
+class UltimosCupos {
+  agotados al final
+  asientos ↑, salida ↑
+}
+
+CatalogoViajesService -right-> FabricaOrdenamiento : pide estrategia
+CatalogoViajesService -down-> OrdenamientoViajes : ordenar()
+FabricaOrdenamiento ..> OrdenamientoViajes : crea
+MasProximos -up-|> OrdenamientoViajes
+MasTarde -up-|> OrdenamientoViajes
+MasAsientosLibres -up-|> OrdenamientoViajes
+UltimosCupos -up-|> OrdenamientoViajes
+@enduml

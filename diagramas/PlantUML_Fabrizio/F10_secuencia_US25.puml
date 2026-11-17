@@ -1,0 +1,28 @@
+@startuml F10_secuencia_US25
+title Secuencia US25 - Calificar pasajero
+skinparam shadowing false
+skinparam dpi 130
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 6
+skinparam maxMessageSize 150
+
+
+participant "Navegador\n(calificaciones.js)" as N
+participant "PassengerRating\nController" as C
+participant "Calificacion\nService" as S
+participant "ReservaViaje\nAdapter" as R
+participant "UsuarioRepositorio\nAdapter" as U
+participant "CalificacionPasajero\nDAO" as D
+
+N -> C : 1: POST /ratings/passengers\n{bookingId, score, comment}
+C -> S : 2: calificar(driverId, datos)
+S -> S : 2.1: #validarEntrada()  [400]
+S -> R : 2.2: buscarReserva(bookingId)  [404]
+S -> U : 2.3: buscarPorId(passengerId)  [404]
+S -> R : 2.4: estaConfirmada(reserva)  [409]
+S -> R : 2.5: haTerminado(reserva, ahora)  [409]
+S -> D : 2.6: buscarDuplicada(...)  [409]
+S -> D : 2.7: guardar\n(crearCalificacion(...))
+S --> C : 3: calificación guardada
+C --> N : 4: 201 {message,\nrating}
+@enduml

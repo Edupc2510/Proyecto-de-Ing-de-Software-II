@@ -1,0 +1,37 @@
+@startuml F08_secuencia_US19
+title Secuencia US19 - Editar perfil
+skinparam shadowing false
+skinparam dpi 130
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 6
+skinparam maxMessageSize 150
+
+
+participant "Navegador\n(cuenta.js)" as N
+participant "Account\nController" as C
+participant "Account\nFacade" as F
+participant "Validador\nPerfil" as V
+participant PerfilDAO as P
+participant "UsuarioRepositorio\nAdapter" as U
+
+N -> C : 1: PUT /account/profile\n{firstName, phone, ...}
+C -> F : 2: actualizarPerfil(userId, datos)
+F -> F : 2.1: obtenerPerfil(userId)
+F -> F : 2.2: #normalizar(datos)
+F -> V : 2.3: validar(entrada)
+alt campo vacío o inválido
+  V --> F : ErrorValidacion
+  F --> N : 422 con detalle por campo
+else datos válidos
+  F -> F : 2.4: #soloLoQueCambio(actual, entrada)
+  alt sin cambios
+    F --> N : {actualizado: false}, no escribe
+  else hay cambios
+    F -> P : 2.5: guardarOActualizar\n(userId, cambiosPerfil)
+    F -> U : 2.6: actualizar\n(userId, cambiosUsuario)
+    F -> F : 2.7: obtenerPerfil(userId)
+    F --> C : 3: {actualizado,\nmensaje, perfil}
+    C --> N : 4: 200 JSON
+  end
+end
+@enduml

@@ -1,0 +1,48 @@
+@startuml F12_grafo_caja_blanca
+title Grafo de flujo de CalificacionService.calificar() - V(G) = 19 - 14 + 2 = 7
+skinparam shadowing false
+skinparam dpi 130
+skinparam nodesep 12
+skinparam ranksep 14
+skinparam state {
+  BackgroundColor<<pred>> LightYellow
+  BackgroundColor<<err>> MistyRose
+}
+
+state "1 · L39-41\nvalidarEntrada +\nbuscarReserva" as N1
+state "2 · L42\n¿!reserva?" as N2 <<pred>>
+state "3 · L42\n¿reserva.driverId\n!== driverId?" as N3 <<pred>>
+state "4 · L43\nthrow 404\n(reserva)" as N4 <<err>>
+state "5 · L45\n¿!buscarPorId(\npassengerId)?" as N5 <<pred>>
+state "6 · L46\nthrow 404\n(pasajero)" as N6 <<err>>
+state "7 · L48\n¿!estaConfirmada?" as N7 <<pred>>
+state "8 · L49\nthrow 409\n(cancelada)" as N8 <<err>>
+state "9 · L51\n¿!haTerminado?" as N9 <<pred>>
+state "10 · L52\nthrow 409\n(no terminó)" as N10 <<err>>
+state "11 · L54\n¿buscarDuplicada?" as N11 <<pred>>
+state "12 · L55\nthrow 409\n(duplicada)" as N12 <<err>>
+state "13 · L58\nguardar(\ncrearCalificacion)" as N13
+state "14\nFIN" as N14
+
+[*] --> N1
+N1 --> N2
+N2 --> N4 : sí
+N2 --> N3 : no
+N3 --> N4 : sí
+N3 --> N5 : no
+N5 --> N6 : sí
+N5 --> N7 : no
+N7 --> N8 : sí
+N7 --> N9 : no
+N9 --> N10 : sí
+N9 --> N11 : no
+N11 --> N12 : sí
+N11 --> N13 : no
+N4 --> N14
+N6 --> N14
+N8 --> N14
+N10 --> N14
+N12 --> N14
+N13 --> N14
+N14 --> [*]
+@enduml

@@ -1,0 +1,96 @@
+@startuml F05_clases_cuenta_US19_US32
+title US19 y US32 - Facade, reglas de validación, DAO y Adapter
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam dpi 130
+skinparam nodesep 20
+skinparam ranksep 30
+
+class AccountController <<Presentación>> {
+  + obtenerPerfil()
+  + actualizarPerfil()
+  + obtenerAjustes()
+  + actualizarAjustes()
+  + perfilPublico()
+}
+
+class AccountFacade <<Facade>> {
+  - usuarios
+  - perfiles
+  - ajustes
+  - validador
+  + obtenerPerfil(userId)
+  + actualizarPerfil(userId, datos)
+  + obtenerAjustes(userId)
+  + actualizarAjustes(userId, cambios)
+  + perfilPublico(userId)
+  + estaVisible(userId)
+  + puedeRecibirSolicitudes(userId)
+  + puedeNotificar(userId, tipo)
+}
+
+class ValidadorPerfil {
+  - reglas
+  + validar(datos)
+}
+class ReglaNombre <<regla>> {
+  + validar(valor)
+}
+class ReglaTelefono <<regla>> {
+  + validar(valor)
+}
+class ReglaFoto <<regla>> {
+  + validar(valor)
+}
+class ReglaPreferencias <<regla>> {
+  + validar(valor)
+}
+class ErrorValidacion {
+  + errores
+  + status = 422
+}
+
+abstract class RegistroPorUsuarioDAO <<DAO>> {
+  + guardarOActualizar(userId, cambios)
+}
+class PerfilDAO {
+  user_profiles.json
+}
+class AjustesDAO {
+  user_settings.json
+}
+abstract class JsonDAO <<DAO base>> {
+  + listar()
+  + buscarPorId(id)
+  + guardar(entidad)
+  + actualizar(id, cambios)
+}
+class UsuarioRepositorioAdapter <<Adapter>> {
+  - userModel
+  + buscarPorId(id)
+  + actualizar(id, cambios)
+}
+class settingsModel <<datos>> {
+  AJUSTES
+  CLAVES_AJUSTES
+  + ajustesPorDefecto()
+}
+
+AccountController --> AccountFacade
+AccountFacade -left-> ValidadorPerfil
+AccountFacade -down-> UsuarioRepositorioAdapter
+AccountFacade -right-> PerfilDAO
+AccountFacade -right-> AjustesDAO
+AccountFacade ..> settingsModel
+ValidadorPerfil o-down- ReglaNombre
+ReglaNombre -[hidden]down- ReglaTelefono
+ReglaTelefono -[hidden]down- ReglaFoto
+ReglaFoto -[hidden]down- ReglaPreferencias
+ValidadorPerfil o-- ReglaTelefono
+ValidadorPerfil o-- ReglaFoto
+ValidadorPerfil o-- ReglaPreferencias
+ValidadorPerfil ..> ErrorValidacion : lanza
+PerfilDAO --|> RegistroPorUsuarioDAO
+AjustesDAO --|> RegistroPorUsuarioDAO
+RegistroPorUsuarioDAO --|> JsonDAO
+@enduml

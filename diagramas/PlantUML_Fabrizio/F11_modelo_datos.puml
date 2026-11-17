@@ -1,0 +1,65 @@
+@startuml F11_modelo_datos
+title Modelo de datos de las colecciones JSON
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam dpi 130
+hide circle
+hide methods
+
+class "users.json" as users <<existente>> {
+  id : PK
+  firstName, lastName
+  email, dni
+  password hash, verified
+  createdAt
+}
+class "user_profiles.json" as prof <<nueva · US19>> {
+  id : PK y FK a users.id
+  phone
+  photo data URL
+  preferencias {conversacion, musica, mascotas}
+  updatedAt
+}
+class "user_settings.json" as set <<nueva · US32>> {
+  id : PK y FK a users.id
+  showPhone : boolean
+  pushNotifications : boolean
+  darkMode : boolean
+  accountPaused : boolean
+  updatedAt
+}
+class "ratings.json" as rat <<compartida con US24>> {
+  id : PK
+  routeId : FK
+  raterId : FK conductor
+  rateeId : FK pasajero
+  rateeRole = passenger
+  bookingId : FK
+  score : 1..5
+  comment : máx. 300
+  createdAt
+}
+class "bookings.json" as book <<existente · US14>> {
+  id : PK
+  routeId : FK
+  driverId : FK
+  passengerId : FK
+  status : confirmada | cancelada
+  routeSnapshot {origin, dest, time, expiresAtTimestamp}
+}
+class "routes.json" as route <<existente>> {
+  id : PK
+  driverId : FK
+  origin, dest
+  seats
+  time, expiresAtTimestamp
+  status : activa | cancelada
+}
+
+prof "1" -- "1" users
+set "1" -- "1" users
+rat "N" -- "1" users : raterId / rateeId
+rat "N" -- "1" book : bookingId
+book "N" -- "1" route : routeId
+route "N" -- "1" users : driverId
+@enduml

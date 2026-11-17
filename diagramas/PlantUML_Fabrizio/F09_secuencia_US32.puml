@@ -1,0 +1,33 @@
+@startuml F09_secuencia_US32
+title Secuencia US32 - Pausar cuenta y efecto en el catálogo
+skinparam shadowing false
+skinparam dpi 130
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 6
+skinparam maxMessageSize 150
+
+
+participant "Navegador\n(cuenta.js)" as N
+participant "Account\nController" as C
+participant "Account\nFacade" as F
+participant AjustesDAO as D
+participant "CatalogoViajes\nService" as S
+
+N -> C : 1: PUT /account/settings\n{accountPaused: true}
+C -> F : 2: actualizarAjustes(userId, cambios)
+F -> F : 2.1: validar claves y booleanos
+alt ajuste desconocido o no booleano
+  F --> N : 422 ErrorValidacion
+else válido
+  F -> F : 2.2: filtrar los que cambiaron
+  F -> D : 2.3: guardarOActualizar\n(userId, modificados)
+  F --> C : 3: {actualizado, ajustes}
+  C --> N : 4: 200 JSON
+end
+== Después: un pasajero consulta el catálogo ==
+N -> S : 5: GET /trip-catalog
+S -> F : 5.1: estaVisible(driverId)
+F -> D : 5.1.1: buscarPorId(driverId)
+F --> S : false (el viaje se excluye)
+S --> N : 6: lista sin los viajes\ndel conductor en pausa
+@enduml

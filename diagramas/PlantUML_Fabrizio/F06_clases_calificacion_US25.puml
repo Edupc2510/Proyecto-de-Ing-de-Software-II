@@ -1,0 +1,74 @@
+@startuml F06_clases_calificacion_US25
+title US25 - Servicio, Adapter, DAO y Singleton
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam dpi 130
+skinparam nodesep 20
+skinparam ranksep 30
+
+class PassengerRatingController <<Presentación>> {
+  + viajes()
+  + calificar()
+  + emitidas()
+}
+class CalificacionService <<Servicio>> {
+  - reservas
+  - calificaciones
+  - usuarios
+  - reloj
+  + calificar(driverId, {bookingId, score, comment})
+  + viajesPorCalificar(driverId)
+  + calificacionesEmitidas(driverId)
+  - validarEntrada(...)
+}
+class ReservaViajeAdapter <<Adapter>> {
+  - bookingModel
+  - esViajeFinalizado
+  + buscarReserva(id)
+  + listarDelConductor(driverId)
+  + estaConfirmada(reserva)
+  + haTerminado(reserva, ahora)
+}
+class CalificacionPasajeroDAO <<DAO>> {
+  ratings.json
+  + buscarDuplicada({routeId, driverId, passengerId})
+  + listarEmitidas(driverId)
+}
+class passengerRatingRecord {
+  RATING_MIN = 1
+  RATING_MAX = 5
+  MAX_COMENTARIO = 300
+  + crearCalificacion(...)
+}
+class UsuarioRepositorioAdapter <<Adapter>> {
+  + buscarPorId(id)
+}
+class "trips/bookingModel" as BM <<Adaptee US14>> {
+  + findBookingById(id)
+  + getBookings()
+}
+class isTripFinished <<regla de US24>> {
+  + isTripFinished(booking, now)
+}
+abstract class JsonDAO <<DAO base>> {
+  + listar()
+  + buscar(predicado)
+  + guardar(entidad)
+}
+class JsonDataSource <<Singleton>> {
+  - {static} instanciaUnica
+  + {static} getInstancia()
+  + leerColeccion()
+  + escribirColeccion()
+}
+
+PassengerRatingController --> CalificacionService
+CalificacionService --> ReservaViajeAdapter : reservas
+CalificacionService --> CalificacionPasajeroDAO : calificaciones
+CalificacionService --> UsuarioRepositorioAdapter : usuarios
+CalificacionService ..> passengerRatingRecord
+ReservaViajeAdapter ..> BM : delega
+ReservaViajeAdapter ..> isTripFinished : reutiliza (DRY)
+CalificacionPasajeroDAO --|> JsonDAO
+JsonDAO ..> JsonDataSource : única instancia
+@enduml
