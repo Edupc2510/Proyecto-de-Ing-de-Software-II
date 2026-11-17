@@ -1,14 +1,10 @@
 # MoveShare 🚗
 
-## Trabajo de Rodrigo · Ingeniería de Software II
-
-La rama `Rama-Rodrigo` añade US20 (recuperar contraseña), US22 (detalles del viaje), US26 (filtros) y US36 (reportar incidencia). La documentación académica y el material personal de exposición se conservan por separado, fuera del repositorio.
-
-Para probar: `npm test`. Para obtener cobertura: `npm run test:coverage`. Validado con Node.js 24.21.0; las pruebas usan archivos temporales y correo simulado. Las 142 pruebas pasan en la adaptación local a Main `3aea6c4`, incluidas las pruebas heredadas del equipo. El 16/11/2026 se comprobó además el correo real de recuperación y reclamo con una cuenta personal y datos aislados. La configuración de la cuenta emisora del equipo y la revisión/publicación del PR de Rodrigo siguen pendientes.
-
 > **Plataforma universitaria de movilidad compartida en Lima Metropolitana**
 
 MoveShare conecta estudiantes universitarios que comparten rutas frecuentes en Lima, ayudándoles a reducir costos de transporte y optimizar sus viajes diarios mediante carpooling.
+
+Proyecto del **Grupo 3 de Ingeniería de Software II**, desarrollado en equipo por Camila Mendoza, Luciano Moscoso, Eduardo Pantoja, Fabrizio Curo y Rodrigo Borja.
 
 ---
 
@@ -56,11 +52,7 @@ npm ci
 
 ### 3. Configura las variables de entorno
 
-```bash
-cp .env.example .env
-```
-
-Edita el archivo `.env` con tus credenciales:
+Crea un archivo `.env` en la raíz del proyecto con tus credenciales:
 
 ```env
 PORT=3000
@@ -110,7 +102,6 @@ MoveShare usa Gmail para enviar correos de verificación. **No uses tu contrase�
 moveshare/
 ├── app.js                     # Punto de entrada del servidor
 ├── package.json               # Dependencias y scripts
-├── .env.example               # Plantilla de variables de entorno
 ├── README.md                  # Este archivo
 │
 ├── src/
@@ -119,7 +110,7 @@ moveshare/
 │   ├── trips/                 # Rutas, detalles, filtros y vínculos de viaje
 │   ├── reports/               # Registro de incidencias y persistencia de reclamos
 │   └── shared/middleware/     # Middleware compartido
-├── tests/                     # Pruebas unitarias y de integración de Rodrigo
+├── tests/                     # Pruebas unitarias y de integración del equipo
 │
 ├── data/
 │   ├── users.json             # Usuarios (JSON local)
