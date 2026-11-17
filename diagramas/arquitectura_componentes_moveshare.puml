@@ -1,0 +1,70 @@
+@startuml
+skinparam backgroundcolor #FFFFFF
+skinparam componentStyle rectangle
+title MoveShare - Vista lógica: componentes por capa (Release 2)
+
+package "Presentación (navegador)" {
+  [dashboard.html + dashboard.js] as UI
+  [Módulos por historia\n(driverRequests, driverRating, notifications,\nrouteCancel, pickupSelector, tripHistory,\nfavoriteDrivers, routeEditor, misViajes,\ntripSort, cuenta, report_incident)] as MOD
+  [Leaflet + OpenStreetMap] as MAP
+}
+
+package "Servidor Node.js + Express (app.js)" {
+  [Middleware\n(express-session, requireApiAuth)] as MW
+  package "Rutas y controladores" {
+    [auth / passwordReset] as AUTH
+    [trips (rutas, reservas, edición, cancelación)] as TRIPS
+    [notifications (alertas y avisos)] as NOTIF
+    [ratings (US24 / US25)] as RAT
+    [requests · reservations · myTrips] as RES
+    [drivers · claims · reports] as DRV
+    [account · tripCatalog] as ACC
+  }
+  package "Servicios de dominio" {
+    [routeMatchingService\n+ criterios (Strategy)] as MATCH
+    [routeEditService · pickupValidator\ntripHistoryService] as TSRV
+    [ReservaService · participationCommands\n(Command)] as RSRV
+    [AccountFacade · ReclamoFacade (Facade)\nCatalogoViajesService (Strategy)] as FAC
+    [TripEventBus (Observer)\n+ suscriptores] as BUS
+    [NotificationFactory (Factory)] as FACT
+  }
+  package "Persistencia" {
+    [Modelos (bookingModel, routeModel,\nnotificationModel, ratingModel...)] as MODELS
+    [DAO por entidad (JsonDAO)] as DAO
+    [createJsonStore (Adapter)] as ADP
+    [JsonDataSource (Singleton)] as DS
+  }
+}
+
+database "data/*.json" as JSON
+cloud "Nominatim (OSM)" as NOM
+cloud "Gmail SMTP" as SMTP
+
+UI --> MOD
+MOD --> MAP
+MOD --> MW : fetch JSON / HTTP
+MW --> AUTH
+MW --> TRIPS
+MW --> NOTIF
+MW --> RAT
+MW --> RES
+MW --> DRV
+MW --> ACC
+TRIPS --> BUS : publish(evento)
+BUS --> FACT
+NOTIF --> MATCH
+TRIPS --> TSRV
+RES --> RSRV
+ACC --> FAC
+DRV --> FAC
+TSRV --> MODELS
+RSRV --> DAO
+FAC --> DAO
+MATCH --> MODELS
+MODELS --> ADP
+ADP --> DS
+DAO --> DS
+DS --> JSON
+MOD ..> NOM : búsqueda de direcciones
+AUTH ..> SMTP : correos de verificación / recuperación
+@enduml
